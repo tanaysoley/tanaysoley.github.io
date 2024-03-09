@@ -16,20 +16,49 @@
       <a class="navbar-item" href="https://tanaysoley.com">
         <span class="logo has-text-link is-size-3 has-text-weight-bold">Tanay Soley</span>
       </a>
+      <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navbar-menu">
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+      </a>
     </div>
 
-    <div class="navbar-menu">
-    </div>
+    <div class="navbar-menu" id="navbar-menu">
+      <div class="navbar-start">
+        <a href="/resume" class="navbar-item">
+          <span class="icon">
+            <ion-icon name="document-text-outline"></ion-icon>
+          </span>
+          <span>Resume</span>
+        </a>
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link">
+            <span class="icon">
+              <ion-icon name="code-outline"></ion-icon>
+            </span>
+            <span>Experiments</span>
+          </a>
+
+          <div class="navbar-dropdown">
+            <a class="navbar-item">
+              BollyBlanks
+            </a>
+            <a class="navbar-item">
+              Music Notes Editor
+            </a>
+          </div>
+        </div>
+      </div>
   </nav>
   <section class="hero">
     <div class="hero-body">
-      <div class="columns is-vcentered">
-        <div class="column is-3">
+      <div class="columns is-vcentered is-centered">
+        <div class="column is-2">
           <figure class="image profile-picture">
             <img class="is-rounded" src="./res/profile_picture_compressed.webp">
           </figure>
         </div>
-        <div class="column is-9">
+        <div class="column is-4">
           <p class="title">
             Hi! I am Tanay Soley!
           </p>
@@ -42,7 +71,7 @@
   </section>
   <section class="section">
     <div class="columns is-centered">
-      <div class="column has-background-light">
+      <div class="column has-background-light is-3">
         <h1 class="is-size-4">Follow me</h1>
         <ul>
           <li>
@@ -61,7 +90,7 @@
                 <span class="icon">
                   <ion-icon name="logo-github"></ion-icon>
                 </span>
-                <span>LinkedIn</span>
+                <span>Github</span>
               </span>
             </a>
           </li>
@@ -98,16 +127,15 @@
         </ul>
       </div>
       <div class="column is-0"></div>
-      <div class="column has-background-light">
+      <div class="column has-background-light is-3">
         <h1 class="is-size-4">Hire me</h1>
-        <p>I have been working as a Software Engineer since 2014. I have worked with Adobe, Flipkart, Rubrik, Recko in
-          the past and I am currently working with Stripe.</p>
+        <p>I have been working as a Software Engineer since 2014. I have worked with <a href="https://www.adobe.com/"
+            target="_blank">Adobe</a>, <a href="https://www.flipkart.com/" target="_blank">Flipkart</a><a
+            href="https://en.wikipedia.org/wiki/Serial_comma" target="_blank">,</a> and <a href="https://www.recko.io/"
+            target="_blank">Recko</a> in
+          the past and I am currently working with <a href="https://www.stripe.com" target="_blank">Stripe.</a></p>
         <p>Feel free to reach out to me if you want to discuss
-          working together. You can find my resume <a href="./resume">here</a></p>.
-      </div>
-      <div class="column is-0"></div>
-      <div class="column has-background-light">
-        <h1 class="is-size-4">Experiments and Personal Projects</h1>
+          working together. You can find my resume <a href="./resume" style="font-weight: 800;">here</a></p>.
       </div>
     </div>
   </section>
