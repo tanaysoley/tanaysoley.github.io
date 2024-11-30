@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Canvas Drawing App</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="apple-touch-icon" sizes="180x180" href="../favicon_io/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="../favicon_io/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="../favicon_io/favicon-16x16.png">
+    <link rel="manifest" href="../favicon_io/site.webmanifest">
+
+</head>
+
+<body>
+    <canvas id="myCanvas" width="1000" height="1000"></canvas>
+    <br>
+    <textarea id="stateInput" rows="4" cols="50">[[150, 200, 0, 0, 0, 10, 20],[350, 400, 0, 0, 1, 10, 20]]</textarea>
+    <br>
+    <div>
+        <button id="getNextState">Get Next State</button>
+        <button id="draw">Draw</button>
+    </div>
+    <div>
+        <button id="play">Play</button>
+        <button id="pause">Pause</button>
+        <label for="genPerSecond">Generations Per Second</label>
+        <input type="number" value="5" id="genPerSecond">
+    </div>
+    <div>
+        <input type="checkbox" id="afterimage">
+        <label for="afterimage">Afterimage</label>
+    </div>
+    <div>
+        <h1>Instructions</h1>
+        <ol>
+            <li>This world can be represented using a JSON object which has the following format -
+                <ol>
+                    <li>The object is an array of array of numbers</li>
+                    <li>The inner array in the object contains 5 numbers which have the following limits</li>
+                    <ul>
+                        <li>The first and second numbers should be greter than or equal to 0 and less than or equal to
+                            1000</li>
+                        <l1>It is recommended that the third and 4th numbers be in between -100 and 100 although
+                            it is ont a strict rule</l1>
+                        <li> The 5th number should be one of 0, 1 or 2</li>
+                        <li> There is no limit to the 6th and 7th numbers</li>
+                        <li> Any other numbers will be ignored</li>
+                    </ul>
+                    <li>There arent any checks for the numbers being out of limits, so there may be unexpectd results if
+                        such an input is provided. If you wish to make this more interesting you may consider those
+                        results as on of the ways this world behaves (even though those are not the wasy the author
+                        wanted the universe to behave).</li>
+                </ol>
+            </li>
+            <li>Each state of the universe is the function of the previous state of the universe</li>
+            <li>A drawing of a state of the universe can be generated using the "Draw" button to visualize the state of
+                the universe</li>
+            <li>You may enter a state of the universe in the text box and do one of the following things
+                <ol>
+                    <li>Draw that state of the universe using the "Draw" button</li>
+                    <li>Get the next state of the universe based on this state using the "Get Next State" Button. This
+                        will also draw the next state of the universe</li>
+                    <li>Keep on drawing newer generations based on the first generation you put in using the "Play"
+                        button. The speed of this can be controlled by the Generations Per Second text box</li>
+                    <li>Checking the afterimage checkbox keeps a faded after image of the previous generations on the
+                        board</li>
+                </ol>
+            </li>
+            <li><b><i style="color:#FF8888">Each generation of the universe is logged in the console</i></b></li>
+            <li>If you do not want to use the UI you can use this using the console. the <code>nextGen([[][]...])</code>
+                function takes a JSON and gives the next state</li>
+        </ol>
+        <b>The code to drive the usiverse is not hidden, you can figure out how the universe works using the script.js
+            file. But that would take out all the
+            fun</b>
+    </div>
+    <script src="script.js"></script>
+</body>
+
+</html>
