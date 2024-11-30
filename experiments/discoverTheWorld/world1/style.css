@@ -1,0 +1,39 @@
+canvas {
+  border: 1px solid white;
+}
+/* Dark Mode */
+body {
+  background-color: #222;
+  color: #fff;
+}
+
+/* Adjust text colors and other elements as needed */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: #fff;
+}
+
+p,
+a,
+li {
+  color: #ddd;
+}
+
+/* Adjust background colors for specific elements */
+textarea {
+  margin: 5px;
+  width: calc(100% - 10px);
+  background-color: #333;
+  color: #fff;
+}
+
+button {
+  padding: 10px;
+  margin: 5px;
+  background-color: #444;
+  color: #fff;
+}
