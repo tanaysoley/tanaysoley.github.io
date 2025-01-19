@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>Beat Helper</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div>
+        <label for="metronomeInput">Beats</label>
+        <textarea id="metronomeInput" placeholder="Enter the beats here">1111</textarea>
+    </div>
+    <div>
+        <label for="notesInput">Notes</label>
+        <textarea id="notesInput" placeholder="Enter the notes here">...-g-p
+s>nd-p-m
+...-r-m
+ndp-m-g
+...-s-g
+dpm-g-r..rgp-p-p...-g-mgrs......-g-p
+            </textarea>
+    </div>
+    <div>
+        <label for="bpmInput">BPM</label>
+        <input type="number" id="bpmInput" value="60">
+    </div>
+    <div>
+        <label for="updateInterval">Update Interval</label>
+        <input type="number" id="updateInterval" value="0.25">
+    </div>
+    <div id="buttonBar">
+        <button id="playButton">Play</button>
+        <button id="pauseButton">Pause</button>
+        <button id="stopButton">Stop</button>
+        <button id="resetButton">Reset</button>
+    </div>
+    <div id="visualizer">
+        <div id="notesContainer" class="notesContainer"></div>
+    </div>
+
+    <div templates>
+        <template id="noteTemplate">
+            <div class="note">
+                <div class="noteTop"></div>
+                <div class="noteName"></div>
+                <div class="noteBottom"></div>
+            </div>
+        </template>
+    </div>
+    <script src="script.js"></script>
+    <script src="uiScript.js"></script>
+</body>
+
+</html>
