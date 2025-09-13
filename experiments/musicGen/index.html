@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en" class="has-background-light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Music Gen</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <style>
+        html,
+        body {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        body>main {
+            flex-grow: 1;
+            overflow-y: auto;
+        }
+
+        .CodeMirror {
+            border: 1px solid #dbdbdb;
+            height: 100%;
+        }
+
+        #song-display-container {
+            flex-grow: 1;
+            overflow: auto;
+        }
+
+        #song-display svg {
+            display: block;
+        }
+
+        .numeric-display {
+            font-weight: bold;
+            font-size: 1.2rem;
+            text-align: center;
+            min-width: 60px;
+            height: 2.5rem;
+            /* Match button height */
+            line-height: 2.5rem;
+            background-color: white;
+            border-top: 1px solid #dbdbdb;
+            border-bottom: 1px solid #dbdbdb;
+        }
+
+        @media print {
+            .is-hidden-print {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header class="hero is-light is-hidden-print">
+        <div class="hero-body py-4">
+            <div class="container">
+                <nav class="navbar">
+                    <div class="navbar-brand">
+                        <a class="navbar-item title is-4" href="#">MusicGen</a>
+                    </div>
+                    <div class="navbar-end">
+                        <div class="navbar-item">
+                            <div class="buttons">
+                                <a href="help.html" target="_blank" class="button is-light">
+                                    <span class="icon"><i class="fas fa-question-circle"></i></span>
+                                    <span>Help</span>
+                                </a>
+                                <button id="share-btn" class="button">
+                                    <span class="icon"><i class="fas fa-share-alt"></i></span>
+                                    <span>Share this song</span>
+                                </button>
+                                <button id="print-btn" class="button is-primary is-hidden">
+                                    <span class="icon"><i class="fas fa-print"></i></span>
+                                    <span>Print</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main class="section pt-4">
+        <div id="song-display-container" class="container mb-4">
+            <div id="song-display" class="box p-0"></div>
+        </div>
+        <div id="editor-container" class="container is-hidden-print">
+            <textarea id="editor"></textarea>
+        </div>
+    </main>
+
+    <footer class="hero is-light is-small is-hidden-print">
+        <div class="hero-body">
+            <div class="container">
+                <div id="footer-controls" class="level">
+                    <div class="level-item">
+                        <div class="field is-grouped is-align-items-left">
+                            <div class="field mr-4">
+                                <label class="label">&nbsp</label>
+                                <div class="field has-addons">
+                                    <p class="control">
+                                        <button id="play-btn" class="button is-large">
+                                            <span class="icon"><i class="fas fa-play"></i></span>
+                                        </button>
+                                    </p>
+                                    <p class="control">
+                                        <button id="pause-btn" class="button is-large">
+                                            <span class="icon"><i class="fas fa-pause"></i></span>
+                                        </button>
+                                    </p>
+                                    <p class="control">
+                                        <button id="stop-btn" class="button is-large">
+                                            <span class="icon"><i class="fas fa-stop"></i></span>
+                                        </button>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-grouped is-align-items-left">
+                            <div class="field mr-4">
+                                <label class="label">Start Beat</label>
+                                <div class="field has-addons">
+                                    <p class="control">
+                                        <button class="button is-large" data-target="start-beat" data-step-type="bar"
+                                            data-direction="-1">
+                                            <span class="icon"><i class="fas fa-angle-double-left"></i>
+                                            </span>
+                                        </button>
+                                    </p>
+                                    <p class="control"><button class="button is-large" data-target="start-beat"
+                                            data-step-type="single" data-direction="-1"><span class="icon"><i
+                                                    class="fas fa-angle-left"></i></span></button></p>
+                                    <p class="control"><button id="start-beat-display"
+                                            class="button is-large ">0</button>
+                                    </p>
+                                    <p class="control"><button class="button is-large" data-target="start-beat"
+                                            data-step-type="single" data-direction="1"><span class="icon"><i
+                                                    class="fas fa-angle-right"></i></span></button></p>
+                                    <p class="control"><button class="button is-large" data-target="start-beat"
+                                            data-step-type="bar" data-direction="1"><span class="icon"><i
+                                                    class="fas fa-angle-double-right"></i></span></button></p>
+                                </div>
+                            </div>
+                            <div class="field mr-4">
+                                <label class="label">End Beat</label>
+                                <div class="field has-addons">
+                                    <p class="control"><button class="button is-large" data-target="end-beat"
+                                            data-step-type="bar" data-direction="-1"><span class="icon"><i
+                                                    class="fas fa-angle-double-left"></i></span></button></p>
+                                    <p class="control"><button class="button is-large" data-target="end-beat"
+                                            data-step-type="single" data-direction="-1"><span class="icon"><i
+                                                    class="fas fa-angle-left"></i></span></button></p>
+                                    <p class="control"><span id="end-beat-display" class="button is-large">16</span></p>
+                                    <p class="control"><button class="button is-large" data-target="end-beat"
+                                            data-step-type="single" data-direction="1"><span class="icon"><i
+                                                    class="fas fa-angle-right"></i></span></button></p>
+                                    <p class="control"><button class="button is-large" data-target="end-beat"
+                                            data-step-type="bar" data-direction="1"><span class="icon"><i
+                                                    class="fas fa-angle-double-right"></i></span></button></p>
+                                </div>
+                            </div>
+                            <div class="field mr-4">
+                                <label class="label">Bar Length</label>
+                                <div class="field has-addons">
+                                    <p class="control"><button class="button is-large" data-target="bar-length"
+                                            data-step-type="single" data-direction="-1"><span class="icon"><i
+                                                    class="fas fa-minus"></i></span></button></p>
+                                    <p class="control"><span id="bar-length-display" class="button is-large">4</span>
+                                    </p>
+                                    <p class="control"><button class="button is-large" data-target="bar-length"
+                                            data-step-type="single" data-direction="1"><span class="icon"><i
+                                                    class="fas fa-plus"></i></span></button></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
+    <script type="module" src="app.js"></script>
+</body>
+
+</html>

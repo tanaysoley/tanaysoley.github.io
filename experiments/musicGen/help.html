@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en" class="has-background-light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MusicGen Help</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css">
+</head>
+<body>
+    <section class="section">
+        <div class="container">
+            <div class="content">
+                <h1 class="title">How to Write Music</h1>
+                <p>This guide explains the simple text-based language used to create music in this tool.</p>
+
+                <h2 class="subtitle">Song Structure</h2>
+                <p>A song is made up of a title, a tempo, and one or more tracks.</p>
+                <pre>
+                    <code>
+                        title MyFirstSong
+                        tempo 120
+
+                        begin instrument_name
+                        ... notes ...
+                        end
+
+                        begin another_instrument
+                        ... notes ...
+                        end
+                    </code>
+                </pre>
+
+                <h2 class="subtitle">Notes</h2>
+                <p>Notes are written using Indian Sargam notation. The standard notes are <code>s, r, g, m, p, d, n</code>.</p>
+                <ul>
+                    <li><strong>Vikrit (Altered) Swars:</strong> Use uppercase for Komal (flat) and Teevra (sharp) notes: <code>R, G, M, D, N</code>.</li>
+                    <li><strong>Octaves:</strong>
+                        <ul>
+                            <li>Prefix a number for lower octaves (e.g., <code>1s</code> is Sa in the lower octave).</li>
+                            <li>Suffix a number for higher octaves (e.g., <code>s1</code> is Sa in the higher octave).</li>
+                        </ul>
+                    </li>
+                </ul>
+                <p>Example: <code>1n s R g m p d N s1</code></p>
+
+                <h2 class="subtitle">Duration</h2>
+                <p>The duration of a note is based on beats. The default duration is 1 beat.</p>
+                <ul>
+                    <li><code>+</code> (sustain): Each plus sign adds one beat to the duration. <code>s+</code> is 2 beats, <code>s++</code> is 3 beats.</li>
+                    <li><code>-</code> (halve): Each minus sign halves the duration. <code>s-</code> is a half beat, <code>s--</code> is a quarter beat.</li>
+                </ul>
+                <p>You can combine them: <code>s+--</code> is a 2-beat note, halved twice, resulting in a half beat duration (2 / 2 / 2 = 0.5).</p>
+
+                <h2 class="subtitle">Chords and Groups</h2>
+                <p>To play multiple notes at the same time (a chord), enclose them in square brackets <code>[]</code>.</p>
+                <p>Example: <code>[s g p]</code> plays Sa, Ga, and Pa simultaneously.</p>
+
+                <h2 class="subtitle">Repetition</h2>
+                <p>To repeat a section of music, enclose it in curly braces <code>{}</code> followed by a number.</p>
+                <p>Example: <code>{s r g}4</code> plays the phrase "s r g" four times in a row.</p>
+
+                <h2 class="subtitle">Putting It All Together</h2>
+                <pre>
+                    <code>
+                        title MyHappySong
+                        tempo 140
+
+                        begin IndianNotesPiano
+                        { [s g p]+ [r m d]+ }2
+                        s+ g+ m-- p-- d+
+                        end
+                    </code>
+                </pre>
+            </div>
+        </div>
+    </section>
+</body>
+</html>
