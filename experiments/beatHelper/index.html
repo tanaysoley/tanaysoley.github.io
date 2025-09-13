@@ -8,33 +8,37 @@
 </head>
 
 <body>
-    <div>
-        <label for="metronomeInput">Beats</label>
-        <textarea id="metronomeInput" placeholder="Enter the beats here">1111</textarea>
+    <div class="inputAreaContainer">
+        <div style="flex-grow: 1;">
+            <label for="metronomeInput">Beats</label>
+            <br>
+            <textarea class="inputArea" id="metronomeInput" placeholder="Enter the beats here">8111</textarea>
+        </div>
+        <div style="flex-grow: 4;">
+            <label for="notesInput">Notes</label>
+            <br>
+            <textarea class="inputArea" id="notesInput" placeholder="Enter the notes here">srgm</textarea>
+        </div>
     </div>
-    <div>
-        <label for="notesInput">Notes</label>
-        <textarea id="notesInput" placeholder="Enter the notes here">...-g-p
-s>nd-p-m
-...-r-m
-ndp-m-g
-...-s-g
-dpm-g-r..rgp-p-p...-g-mgrs......-g-p
-            </textarea>
-    </div>
-    <div>
-        <label for="bpmInput">BPM</label>
-        <input type="number" id="bpmInput" value="60">
-    </div>
-    <div>
-        <label for="updateInterval">Update Interval</label>
-        <input type="number" id="updateInterval" value="0.25">
-    </div>
-    <div id="buttonBar">
-        <button id="playButton">Play</button>
-        <button id="pauseButton">Pause</button>
-        <button id="stopButton">Stop</button>
-        <button id="resetButton">Reset</button>
+    <div class="controlBar">
+        <div>
+            <label for="bpmInput">BPM</label>
+            <input type="number" id="bpmInput" value="120">
+        </div>
+        <div>
+            <label for="updateInterval">Update Interval</label>
+            <input type="number" id="updateInterval" value="0.5">
+        </div>
+        <div>
+            <label for="playNotes">Play Notes</label>
+            <input id="playNotes" type="checkbox"></input>
+        </div>
+        <div id="buttonBar">
+            <button id="playButton">Play</button>
+            <button id="pauseButton">Pause</button>
+            <button id="stopButton">Stop</button>
+            <button id="resetButton">Reset</button>
+        </div>
     </div>
     <div id="visualizer">
         <div id="notesContainer" class="notesContainer"></div>
@@ -54,3 +58,15 @@ dpm-g-r..rgp-p-p...-g-mgrs......-g-p
 </body>
 
 </html>
+
+
+<!-- ...-g-ps>nd-p-m++.-r-mndp-m-g++.-s-gdpm-g-r++rgp-p-p++.-g-mgrs+++++.-g-p
+s>nd-p-m++.-r-mndp-m-g++.-s-gdpm-g-r++rgp-p-p++.-g-mgr
+ss-s-r-s-++n<+++
+.r-r-g-r-++s+++
+.s-s-r-s-++R+++
+.g-g-m-g-++r+++
+..mmpm-p+mm-p-m-pm
+mg-m-++gg-m-g-gg
+gr-g-++rr-g-r-gr
+sp<-d<pg-s+.-g-p -->

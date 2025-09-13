@@ -152,6 +152,7 @@ function parseNotes(songString) {
   var tokens = songString.split("");
   var notesArray = [];
   var currentNote;
+  var currentNoteMultiplier = 1;
 
   for (var i = 0; i < tokens.length; i++) {
     var token = tokens[i];
@@ -174,7 +175,7 @@ function parseNotes(songString) {
       }
     } else if (state === "gotLetter" || state === "gotOrn") {
       if (token === "+") {
-        currentNote.time = 1.5 * currentNote.time;
+        currentNoteMultiplier++;
         state = "gotOrn";
       } else if (token === "-") {
         currentNote.time = 0.5 * currentNote.time;
@@ -186,24 +187,29 @@ function parseNotes(songString) {
         currentNote.note = currentNote.note - 12;
         state = "gotOrn";
       } else if (letters.includes(token)) {
+        currentNote.time = currentNote.time * currentNoteMultiplier;
         notesArray.push(structuredClone(currentNote));
         // //console.log(`pushing  ${JSON.stringify(notesArray)}`);
         currentNote = {
           note: letters.indexOf(token),
           time: 1,
         };
+        currentNoteMultiplier = 1;
         state = "gotLetter";
       } else if (token === ".") {
+        currentNote.time = currentNote.time * currentNoteMultiplier;
         notesArray.push(structuredClone(currentNote));
         // //console.log(`pushing  ${JSON.stringify(notesArray)}`);
 
         currentNote = {
           time: 1,
         };
+        currentNoteMultiplier = 1;
         state = "gotLetter";
       }
     }
   }
+  currentNote.time = currentNote.time * currentNoteMultiplier;
   notesArray.push(structuredClone(currentNote));
   //   //console.log(`pushing  end ${JSON.stringify(notesArray)}`);
   return notesArray;
@@ -211,11 +217,14 @@ function parseNotes(songString) {
 
 function unparseSong(songJson) {}
 
-function playSong(song, onBeatCallback, updateBeatMultiplier) {
+function playSong(song, onBeatCallback, updateBeatMultiplier, playNotes) {
+  console.log(playNotes);
   const songTime = getSongTime(song);
   playMetronomoeInLoop(song, songTime);
   updateBeats(song, onBeatCallback, updateBeatMultiplier, songTime);
-  playAllNotes(song);
+  if (playNotes) {
+    playAllNotes(song);
+  }
 }
 
 async function updateBeats(song, callback, updateBeatMultiplier, tillTime) {
@@ -235,7 +244,7 @@ async function updateBeats(song, callback, updateBeatMultiplier, tillTime) {
 
 async function playMetronomeBeat(note) {
   //   console.log("beat", new Date().getMilliseconds());
-  playSound(getFrequencyFromNote(note) / 4, 100, "square", 0.5);
+  playSound(getFrequencyFromNote(note) / 4, 100, "square", 0.5, true);
 }
 
 async function playAllNotes(song) {
@@ -279,7 +288,13 @@ async function playNote(note, timeMul, baseBpm) {
   playSound(getFrequencyFromNote(note), timeMs, "sine");
 }
 
-function playSound(frequency, timeMS, waveType, gain = 0.8) {
+function playSound(
+  frequency,
+  timeMS,
+  waveType,
+  gain = 0.8,
+  expRampDown = false
+) {
   const timeS = timeMS / 1000;
   //console.log("Playing note: " + frequency);
   const occilatorNode = context.createOscillator();
@@ -288,10 +303,14 @@ function playSound(frequency, timeMS, waveType, gain = 0.8) {
 
   const gainNode = context.createGain();
   gainNode.gain.setValueAtTime(gain, context.currentTime);
-  gainNode.gain.exponentialRampToValueAtTime(
-    0.0001,
-    context.currentTime + timeS
-  );
+  if (expRampDown) {
+    gainNode.gain.exponentialRampToValueAtTime(
+      0.0001,
+      context.currentTime + timeS
+    );
+  } else {
+    gainNode.gain.linearRampToValueAtTime(0.0001, context.currentTime + timeS);
+  }
   occilatorNode.connect(gainNode);
   gainNode.connect(context.destination);
 

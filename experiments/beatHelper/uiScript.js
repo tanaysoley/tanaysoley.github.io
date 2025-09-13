@@ -8,6 +8,7 @@ const notesInput = document.getElementById("notesInput");
 const metronomeInput = document.getElementById("metronomeInput");
 const bpmInput = document.getElementById("bpmInput");
 const updateInterval = document.getElementById("updateInterval");
+const playNotesInput = document.getElementById("playNotes");
 
 var parsedSong;
 
@@ -126,7 +127,12 @@ function setNoteElementBackground(noteElement, notePlayedFraction) {
 
 playButton.addEventListener("click", function () {
   userInputHandler();
-  playSong(parsedSong, listenBeatUpdate, parseFloat(updateInterval.value));
+  playSong(
+    parsedSong,
+    listenBeatUpdate,
+    parseFloat(updateInterval.value),
+    playNotesInput.checked
+  );
 });
 
 function listenBeatUpdate(bt) {
