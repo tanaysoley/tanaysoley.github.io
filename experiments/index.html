@@ -3,20 +3,280 @@
 
 <head>
     <meta charset="utf-8">
-    <title>Experiments</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Experiments · Tanay Soley</title>
+    <meta name="description" content="Games, music tools and other small experiments by Tanay Soley.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap">
+    <style>
+        :root {
+            --bg: #f6f7fb;
+            --card: #ffffff;
+            --text: #14172b;
+            --muted: #5d6483;
+            --line: #e3e6f0;
+            --link: #3e56d6;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #0b0d18;
+                --card: #131729;
+                --text: #e8ebff;
+                --muted: #949bc0;
+                --line: #232946;
+                --link: #8fa2ff;
+            }
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+            line-height: 1.5;
+        }
+
+        a { color: inherit; text-decoration: none; }
+
+        .wrap { max-width: 1040px; margin: 0 auto; padding: 28px 20px 60px; }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+        }
+
+        .brand { font-weight: 800; font-size: 20px; color: var(--link); }
+        nav .links a { color: var(--muted); font-weight: 600; margin-left: 18px; }
+        nav .links a:hover { color: var(--text); }
+
+        header h1 { font-size: clamp(32px, 6vw, 48px); font-weight: 800; letter-spacing: -1px; }
+        header p { color: var(--muted); margin-top: 6px; max-width: 560px; }
+
+        .section-title {
+            margin: 40px 0 14px;
+            font-size: 13px;
+            font-weight: 800;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+        }
+
+        .card {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            padding: 20px;
+            transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+        }
+
+        .card:hover, .card:focus-visible {
+            transform: translateY(-3px);
+            border-color: var(--accent);
+            box-shadow: 0 10px 30px -12px var(--accent);
+            outline: none;
+        }
+
+        .icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: grid;
+            place-items: center;
+            font-weight: 800;
+            font-size: 16px;
+            color: #fff;
+            background: var(--accent);
+        }
+
+        .card h2 { font-size: 19px; font-weight: 800; }
+        .card p { color: var(--muted); font-size: 14px; flex: 1; }
+
+        .tags { display: flex; gap: 6px; flex-wrap: wrap; }
+
+        .tag {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 9px;
+            border-radius: 999px;
+            border: 1px solid var(--line);
+            color: var(--muted);
+        }
+
+        .tag.new { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+        .featured {
+            grid-column: 1 / -1;
+            flex-direction: row;
+            align-items: center;
+            gap: 24px;
+            padding: 24px;
+            background:
+                radial-gradient(circle at 85% 50%, rgba(255, 95, 168, 0.18), transparent 45%),
+                radial-gradient(circle at 70% 20%, rgba(88, 240, 138, 0.15), transparent 40%),
+                #05060d;
+            color: #e8ecff;
+            border-color: #1d2442;
+        }
+
+        .featured p { color: #a9b1d6; font-size: 15px; }
+        .featured .tag { border-color: #2a3463; color: #a9b1d6; }
+        .featured .tag.new { background: #58f08a; border-color: #58f08a; color: #05200f; }
+        .featured .body { flex: 1; display: flex; flex-direction: column; gap: 10px; }
+
+        .featured h2 {
+            width: fit-content;
+            font-size: 34px;
+            letter-spacing: 3px;
+            background: linear-gradient(90deg, #ff5fa8, #ffa040, #58f08a);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .play {
+            align-self: flex-start;
+            margin-top: 4px;
+            padding: 8px 18px;
+            border-radius: 10px;
+            background: #58f08a;
+            color: #05200f;
+            font-weight: 800;
+            font-size: 14px;
+        }
+
+        .planet { flex: none; width: 150px; height: 150px; }
+
+        @media (max-width: 600px) {
+            .featured { flex-direction: column-reverse; align-items: stretch; }
+            .planet { align-self: center; width: 120px; height: 120px; }
+        }
+
+        footer { margin-top: 48px; color: var(--muted); font-size: 13px; }
+        footer a { color: var(--link); font-weight: 600; }
+    </style>
 </head>
 
 <body>
-    <ol>
-        <h1>Experiments</h1>
-        <li><a href="/experiments/tba_experiment/">Text Based Adventure Game</a></li>
-        <li>
-            <a href="/experiments/discoverTheWorld/">Discover The World</a>
-        </li>
-        <li>
-            <a href="/experiments/beatHelper/">BeatHelper</a>
-        </li>
-    </ol>
+    <div class="wrap">
+        <nav>
+            <a class="brand" href="/">Tanay Soley</a>
+            <div class="links">
+                <a href="/">Home</a>
+                <a href="/resume">Resume</a>
+            </div>
+        </nav>
+
+        <header>
+            <h1>Experiments</h1>
+            <p>Games, music tools and other things I build to try out ideas. Some are polished, some are rough. All run
+                in the browser.</p>
+        </header>
+
+        <div class="section-title">Games</div>
+        <div class="grid">
+            <a class="card featured" href="/experiments/pog2/" style="--accent:#58f08a">
+                <div class="body">
+                    <div class="tags"><span class="tag new">New</span><span class="tag">Game</span><span
+                            class="tag">Desktop &amp; mobile</span></div>
+                    <h2>POG 2</h2>
+                    <p>One planet, one rotating gun, one action: tap. Shoot down the pink, orange and green POGs before
+                        they hit your planet, and grab power-ups along the way. How long can you survive?</p>
+                    <span class="play">Play now →</span>
+                </div>
+                <svg class="planet" viewBox="0 0 160 160" aria-hidden="true">
+                    <defs>
+                        <radialGradient id="pg" cx="35%" cy="35%" r="70%">
+                            <stop offset="0" stop-color="#6fc0ff" />
+                            <stop offset="1" stop-color="#173a8a" />
+                        </radialGradient>
+                    </defs>
+                    <circle cx="80" cy="80" r="56" fill="rgba(90,170,255,0.18)" />
+                    <circle cx="80" cy="80" r="40" fill="url(#pg)" />
+                    <circle cx="70" cy="72" r="12" fill="rgba(80,210,140,0.75)" />
+                    <circle cx="90" cy="92" r="9" fill="rgba(80,210,140,0.75)" />
+                    <rect x="112" y="44" width="22" height="8" rx="2" fill="#d9e2ff" transform="rotate(-35 112 48)" />
+                    <circle cx="146" cy="24" r="9" fill="#58f08a" />
+                    <circle cx="20" cy="40" r="12" fill="#ffa040" />
+                    <circle cx="28" cy="134" r="15" fill="#ff5fa8" />
+                    <circle cx="131" cy="31" r="3" fill="#e9f7ff" />
+                </svg>
+            </a>
+
+            <a class="card" href="/experiments/taptapboom/" style="--accent:#f97316">
+                <div class="icon">TB</div>
+                <h2>Tap Tap Boom</h2>
+                <p>A minimalist planet-defender game. Tap, click or press Space to shoot down incoming hazards.</p>
+                <div class="tags"><span class="tag">Game</span></div>
+            </a>
+
+            <a class="card" href="/experiments/tba_experiment/" style="--accent:#8b5cf6">
+                <div class="icon">TA</div>
+                <h2>Text Adventure</h2>
+                <p>A small text-based adventure game, driven by a JSON story file.</p>
+                <div class="tags"><span class="tag">Game</span><span class="tag">Text</span></div>
+            </a>
+        </div>
+
+        <div class="section-title">Music</div>
+        <div class="grid">
+            <a class="card" href="/experiments/musicGen/" style="--accent:#ec4899">
+                <div class="icon">MG</div>
+                <h2>Music Gen</h2>
+                <p>Write music in a simple text language with tracks and tempo, and hear it played back in the browser.</p>
+                <div class="tags"><span class="tag">Music</span><span class="tag">Editor</span></div>
+            </a>
+
+            <a class="card" href="/experiments/beatHelper/" style="--accent:#14b8a6">
+                <div class="icon">BH</div>
+                <h2>Beat Helper</h2>
+                <p>Practise along to beats and sargam note sequences at the tempo you choose.</p>
+                <div class="tags"><span class="tag">Music</span><span class="tag">Practice</span></div>
+            </a>
+        </div>
+
+        <div class="section-title">Tools &amp; simulations</div>
+        <div class="grid">
+            <a class="card" href="/experiments/familytree/" style="--accent:#3b82f6">
+                <div class="icon">FT</div>
+                <h2>Family Tree</h2>
+                <p>Visualise a family on a timeline you can pan and zoom, with marriages, children and life spans.</p>
+                <div class="tags"><span class="tag">Tool</span><span class="tag">Visualisation</span></div>
+            </a>
+
+            <a class="card" href="/experiments/discoverTheWorld/world1/" style="--accent:#22c55e">
+                <div class="icon">DW</div>
+                <h2>Discover The World</h2>
+                <p>Describe a world of moving objects in JSON, then step through it or let it play generation by
+                    generation.</p>
+                <div class="tags"><span class="tag">Simulation</span></div>
+            </a>
+
+            <a class="card" href="/experiments/promptbazi/" style="--accent:#eab308">
+                <div class="icon">PB</div>
+                <h2>Prompt Bazi</h2>
+                <p>A WYSIWYG editor for leaving inline comments on text.</p>
+                <div class="tags"><span class="tag">Tool</span><span class="tag">Editor</span></div>
+            </a>
+        </div>
+
+        <footer>
+            ← Back to <a href="/">tanaysoley.com</a>
+        </footer>
+    </div>
 </body>
 
 </html>

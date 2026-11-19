@@ -1,7 +1,8 @@
 import { Game } from './game.js';
 import { Hud } from './hud.js';
 import { initAudio, isMuted, setMuted } from './audio.js';
-import { POGS, POWERS } from './config.js';
+import { POGS, POWERS, GAME_URL } from './config.js';
+import { buildShareCard, cardToBlob, shareScore } from './share.js';
 
 const BEST_KEY = 'pog2.best';
 const canvas = document.getElementById('game');
@@ -17,6 +18,8 @@ let best = parseFloat(localStorage.getItem(BEST_KEY)) || 0;
 let overlayMode = 'menu';
 let overlayLockedUntil = 0;
 
+let share = null; // { blob, url, time } for the last finished game
+
 const hud = new Hud();
 const game = new Game(canvas, {
   onGameOver({ time, kills }) {
@@ -25,9 +28,33 @@ const game = new Game(canvas, {
       best = time;
       localStorage.setItem(BEST_KEY, String(best));
     }
+    game.best = best;
     showOverlay('over', { time, kills, isBest });
+    prepareShare({ snapshot: game.snapshot, time, best, kills, isBest });
   },
 });
+game.best = best;
+
+async function prepareShare(data) {
+  if (share) URL.revokeObjectURL(share.url);
+  share = null;
+  const blob = await cardToBlob(buildShareCard(data));
+  if (!blob) return;
+  share = { blob, url: URL.createObjectURL(blob), time: data.time };
+  const img = document.getElementById('shareImg');
+  const btn = document.getElementById('shareBtn');
+  if (img) { img.src = share.url; img.classList.add('ready'); }
+  if (btn) btn.disabled = false;
+}
+
+async function onShare() {
+  if (!share) return;
+  const status = document.getElementById('shareStatus');
+  const result = await shareScore(share.blob, share.time);
+  if (status && result === 'fallback') {
+    status.textContent = 'Sharing isn’t supported here: image downloaded and link copied.';
+  }
+}
 
 // ------------------------------------------------------------ sizing
 
@@ -52,6 +79,7 @@ const powerLegend = Object.values(POWERS)
 function showOverlay(mode, data = {}) {
   overlayMode = mode;
   overlay.classList.add('show');
+  overlay.classList.toggle('over', mode === 'over');
   if (mode === 'menu') {
     ovTitle.textContent = 'POG 2';
     ovBody.innerHTML = `
@@ -68,15 +96,23 @@ function showOverlay(mode, data = {}) {
     ovTitle.textContent = 'Planet lost';
     ovBody.innerHTML = `
       <div class="final">${data.time.toFixed(1)}<span>s</span></div>
-      <p>${data.isBest ? '<b class="new-best">New best!</b>' : `Best: ${best.toFixed(1)}s`}</p>
-      <p class="muted">${data.kills} POGs destroyed</p>`;
-    ovAction.textContent = 'Tap to play again';
+      <p>${data.isBest ? '<b class="new-best">★ New best!</b>' : `Best: ${best.toFixed(1)}s`}
+        <span class="muted"> · ${data.kills} POGs destroyed</span></p>
+      <img id="shareImg" class="share-img" alt="Score card: survived ${data.time.toFixed(1)} seconds in POG 2">
+      <div class="final-actions">
+        <button id="shareBtn" class="btn primary" disabled>Share</button>
+        <button id="againBtn" class="btn">Play again</button>
+      </div>
+      <p id="shareStatus" class="muted">${GAME_URL.replace(/^https?:\/\//, '')}</p>`;
+    ovAction.textContent = '';
+    document.getElementById('shareBtn').addEventListener('click', onShare);
+    document.getElementById('againBtn').addEventListener('click', overlayAction);
     overlayLockedUntil = performance.now() + 700; // avoid an accidental instant restart
   }
 }
 
 function hideOverlay() {
-  overlay.classList.remove('show');
+  overlay.classList.remove('show', 'over');
 }
 
 function overlayAction() {
@@ -88,8 +124,10 @@ function overlayAction() {
 }
 
 overlay.addEventListener('pointerdown', (e) => {
-  e.preventDefault();
   e.stopPropagation();
+  // The game-over screen has explicit buttons, so stray taps there don't restart.
+  if (overlayMode === 'over') return;
+  e.preventDefault();
   overlayAction();
 });
 

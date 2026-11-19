@@ -1,4 +1,4 @@
-import { WORLD, CENTER, PLANET, GUN, AMMO, POGS, SPAWN, POWERS, SHIELD_TYPES } from './config.js';
+import { WORLD, CENTER, PLANET, GUN, AMMO, POGS, SPAWN, POWERS, SHIELD_TYPES, HOMING } from './config.js';
 import { sfx } from './audio.js';
 
 const TAU = Math.PI * 2;
@@ -44,6 +44,8 @@ export class Game {
       a: rand(0, TAU), d: rand(0, PLANET.radius * 0.85), r: rand(10, 24),
     }));
     this.clock = 0;
+    this.best = 0;
+    this.snapshot = null; // last frame before the planet was destroyed (for the share card)
     this.phase = 'menu';
     this.reset();
   }
@@ -279,6 +281,16 @@ export class Game {
   }
 
   die() {
+    // Keep the last frame before the explosion for the share card (the card shows the score itself).
+    this.hideScore = true;
+    this.render();
+    this.hideScore = false;
+    const snap = document.createElement('canvas');
+    snap.width = this.canvas.width;
+    snap.height = this.canvas.height;
+    snap.getContext('2d').drawImage(this.canvas, 0, 0);
+    this.snapshot = snap;
+
     this.phase = 'dying';
     this.dyingTimer = 1.6;
     this.gun.volleys = [];
@@ -362,6 +374,7 @@ export class Game {
     const far = (o) => Math.hypot(o.x - CENTER, o.y - CENTER) > SPAWN.despawnRadius;
 
     for (const b of this.bullets) {
+      if (HOMING.enabled) this.applyHoming(b, dt);
       b.x += b.vx * dt; b.y += b.vy * dt;
       if (b.x < -60 || b.y < -60 || b.x > WORLD + 60 || b.y > WORLD + 60) b.dead = true;
     }
@@ -377,6 +390,28 @@ export class Game {
       if (far(c) && away(c)) c.dead = true;
     }
     this.sweep();
+  }
+
+  applyHoming(b, dt) {
+    const H = HOMING;
+    let ax = 0, ay = 0;
+    for (const p of this.pogs) {
+      if (p.dead || b.hit.has(p)) continue;
+      const dx = p.x - b.x, dy = p.y - b.y;
+      const d = Math.hypot(dx, dy);
+      if (d > H.range || d === 0) continue;
+      const a = H.strength * Math.pow(H.refDistance / Math.max(d, H.minDistance), H.exponent);
+      ax += (dx / d) * a;
+      ay += (dy / d) * a;
+    }
+    if (!ax && !ay) return;
+    b.vx += ax * dt;
+    b.vy += ay * dt;
+    const sp = Math.hypot(b.vx, b.vy);
+    if (sp > H.maxSpeed) {
+      b.vx *= H.maxSpeed / sp;
+      b.vy *= H.maxSpeed / sp;
+    }
   }
 
   collide() {
@@ -483,6 +518,30 @@ export class Game {
     this.drawBullets(ctx);
     this.drawParticles(ctx);
     this.drawFloaters(ctx);
+    if (this.phase !== 'menu' && !this.hideScore) this.drawScore(ctx);
+  }
+
+  drawScore(ctx) {
+    const beating = this.best > 0 && this.time > this.best;
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'alphabetic';
+    ctx.shadowColor = 'rgba(0,0,0,0.6)';
+    ctx.shadowBlur = 12;
+    ctx.font = '900 84px system-ui, -apple-system, "Segoe UI", sans-serif';
+    const num = this.time.toFixed(1);
+    const w = ctx.measureText(num).width;
+    ctx.fillStyle = beating ? '#ffe066' : 'rgba(255,255,255,0.92)';
+    ctx.fillText(num, CENTER - 14, 110);
+    ctx.font = '700 36px system-ui, -apple-system, "Segoe UI", sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.55)';
+    ctx.textAlign = 'left';
+    ctx.fillText('s', CENTER - 14 + w / 2 + 4, 110);
+    ctx.textAlign = 'center';
+    ctx.font = '700 22px system-ui, -apple-system, "Segoe UI", sans-serif';
+    ctx.fillStyle = beating ? '#ffe066' : 'rgba(200,210,255,0.6)';
+    if (this.best > 0) ctx.fillText(beating ? 'NEW BEST!' : `BEST ${this.best.toFixed(1)}s`, CENTER, 145);
+    ctx.restore();
   }
 
   drawStars(ctx) {

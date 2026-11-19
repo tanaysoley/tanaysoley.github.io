@@ -279,3 +279,42 @@ html, body {
   animation: pulse 1.4s ease-in-out infinite;
 }
 @keyframes pulse { 50% { opacity: 0.45; } }
+
+/* Game-over / share screen */
+#overlay.over { cursor: default; }
+#overlay.over .cta { display: none; }
+#overlay.over .panel { gap: 8px; padding: 18px; }
+#overlay.over h1 { font-size: 30px; }
+#overlay.over .final { font-size: 48px; }
+.share-img {
+  display: block;
+  margin: 2px auto;
+  width: auto;
+  max-width: 100%;
+  height: min(42vh, 400px);
+  height: min(42dvh, 400px);
+  aspect-ratio: 1080 / 1350;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: #05060d;
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+.share-img.ready { opacity: 1; }
+.final-actions { display: flex; gap: 10px; justify-content: center; }
+.btn {
+  flex: 1 1 0;
+  max-width: 180px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.btn.primary { background: #58f08a; border-color: #58f08a; color: #05200f; }
+.btn:disabled { opacity: 0.5; cursor: wait; }

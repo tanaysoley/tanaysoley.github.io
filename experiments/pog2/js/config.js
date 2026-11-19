@@ -1,6 +1,8 @@
 // All gameplay tunables live here so balancing never requires touching game logic.
 
-export const WORLD = 1000;          // logical size of the square play area
+export const GAME_URL = 'https://tanaysoley.com/experiments/pog2/';
+
+export const WORLD = 1000;         // logical size of the square play area
 export const CENTER = WORLD / 2;
 
 export const PLANET = {
@@ -26,6 +28,20 @@ export const AMMO = {
   standard: { name: 'Standard', damage: 1, speed: 950,  radius: 5, pierce: 0, color: '#e9f7ff' },
   heavy:    { name: 'Heavy',    damage: 3, speed: 780,  radius: 8, pierce: 0, color: '#ffd166' },
   piercing: { name: 'Piercing', damage: 1, speed: 1250, radius: 4, pierce: 3, color: '#7df9ff' },
+};
+
+// Homing: bullets are pulled towards every POG within `range`.
+// Acceleration = strength * (refDistance / d)^exponent, i.e. inversely proportional to d^exponent,
+// normalised so `strength` is the pull felt at `refDistance` (changing the exponent keeps it sane).
+// Bullet speed is clamped to `maxSpeed` so a close pass can't fling it.
+export const HOMING = {
+  enabled: true,
+  range: 220,          // world units from the POG's centre
+  exponent: 1.5,       // n in 1 / d^n
+  strength: 4000,      // units/s² at refDistance
+  refDistance: 100,
+  minDistance: 15,     // distance floor to avoid the singularity at d → 0
+  maxSpeed: 1300,      // units/s
 };
 
 // POG types. hp = health, damage = what it does to the planet/shield on impact.
