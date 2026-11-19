@@ -1,0 +1,2339 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Family Tree</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+    <style>
+        :root {
+            --bg: #f8fafc;
+            --line: #64748b;
+            --border: #e2e8f0;
+            --text: #0f172a;
+            --muted: #64748b;
+            --accent: #4f46e5;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            font-family: system-ui, -apple-system, "Segoe UI", "Nirmala UI", "Noto Sans", "Noto Sans Devanagari", Roboto, sans-serif;
+            color: var(--text);
+            background: #fff;
+        }
+
+        /* ---------- Toolbar ---------- */
+        #toolbar {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            border-bottom: 1px solid var(--border);
+            background: #fff;
+            flex: none;
+            flex-wrap: wrap;
+        }
+
+        #toolbar .title {
+            font-weight: 700;
+            font-size: 15px;
+            margin-right: 8px;
+        }
+
+        #toolbar button {
+            font: inherit;
+            font-size: 13px;
+            padding: 5px 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: #fff;
+            color: var(--text);
+            cursor: pointer;
+        }
+
+        #toolbar button:hover {
+            background: #f1f5f9;
+        }
+
+        #toolbar input[type="text"] {
+            font: inherit;
+            font-size: 13px;
+            padding: 4px 8px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            width: 230px;
+        }
+
+        #toolbar select {
+            font: inherit;
+            font-size: 13px;
+            padding: 4px 6px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: #fff;
+            color: var(--text);
+            cursor: pointer;
+        }
+
+        #toolbar .sep {
+            width: 1px;
+            height: 22px;
+            background: var(--border);
+            margin: 0 4px;
+        }
+
+        #toolbar .hint {
+            margin-left: auto;
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        /* ---------- Layout ---------- */
+        main {
+            flex: 1;
+            display: flex;
+            min-height: 0;
+        }
+
+        #editorPane {
+            width: 38%;
+            min-width: 240px;
+            display: flex;
+            flex-direction: column;
+            flex: none;
+            border-right: 1px solid var(--border);
+        }
+
+        #editorPane.hidden,
+        #divider.hidden {
+            display: none;
+        }
+
+        #editor {
+            flex: 1;
+            min-height: 0;
+        }
+
+        #editor .CodeMirror {
+            height: 100%;
+            font-size: 13px;
+        }
+
+        .cm-error-line {
+            background: #fee2e2;
+        }
+
+        .cm-jump-line {
+            background: #e0e7ff;
+        }
+
+        /* CSV columns get alternating colours so it's easier to see which value is in which column */
+        .cm-csv-sep {
+            color: #94a3b8;
+        }
+
+        .cm-csv-c0 {
+            color: #0f172a;
+        }
+
+        .cm-csv-c1 {
+            color: #1d4ed8;
+        }
+
+        .cm-csv-c2 {
+            color: #b45309;
+        }
+
+        .cm-csv-c3 {
+            color: #047857;
+        }
+
+        .cm-csv-c4 {
+            color: #7c3aed;
+        }
+
+        .cm-csv-c5 {
+            color: #be123c;
+        }
+
+        #colInfo {
+            flex: none;
+            font-size: 12px;
+            color: var(--muted);
+            padding: 3px 10px;
+            border-top: 1px solid var(--border);
+            min-height: 22px;
+        }
+
+        #status {
+            flex: none;
+            max-height: 30%;
+            overflow: auto;
+            font-size: 12px;
+            padding: 6px 10px;
+            border-top: 1px solid var(--border);
+        }
+
+        #status.ok {
+            color: #15803d;
+        }
+
+        #status.warn {
+            color: #b45309;
+        }
+
+        #status.error {
+            color: #b91c1c;
+            background: #fef2f2;
+        }
+
+        #status ul {
+            margin: 4px 0 0;
+            padding-left: 18px;
+        }
+
+        #divider {
+            width: 5px;
+            cursor: col-resize;
+            flex: none;
+            background: transparent;
+        }
+
+        #divider:hover {
+            background: var(--border);
+        }
+
+        /* ---------- Tree view ---------- */
+        #view {
+            touch-action: none;
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            background: var(--bg);
+            cursor: grab;
+            user-select: none;
+        }
+
+        #view.dragging {
+            cursor: grabbing;
+        }
+
+        #world {
+            position: absolute;
+            left: 0;
+            top: 0;
+            transform-origin: 0 0;
+            background: var(--bg);
+        }
+
+        .world>.layer {
+            position: absolute;
+            left: 0;
+            top: 0;
+        }
+
+        #empty {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--muted);
+            pointer-events: none;
+        }
+
+        #empty[hidden] {
+            display: none;
+        }
+
+        .axis {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 28px;
+            background: rgba(255, 255, 255, 0.94);
+            overflow: hidden;
+            font-size: 11px;
+            color: var(--muted);
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .axis.top {
+            top: 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .axis.bottom {
+            bottom: 0;
+            border-top: 1px solid var(--border);
+        }
+
+        .axis .tick {
+            position: absolute;
+            width: 1px;
+            height: 4px;
+            background: #94a3b8;
+        }
+
+        .axis .tick.major {
+            height: 8px;
+            background: #475569;
+        }
+
+        .axis.top .tick {
+            bottom: 0;
+        }
+
+        .axis.bottom .tick {
+            top: 0;
+        }
+
+        .axis .lbl {
+            position: absolute;
+            transform: translateX(-50%);
+            white-space: nowrap;
+        }
+
+        .axis.top .lbl {
+            top: 4px;
+        }
+
+        .axis.bottom .lbl {
+            bottom: 4px;
+        }
+
+        .axis .today {
+            position: absolute;
+            transform: translateX(-50%);
+            color: #dc2626;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .axis.top .today {
+            top: 4px;
+        }
+
+        .axis.bottom .today {
+            bottom: 4px;
+        }
+
+        /* Grid & lines */
+        .grid-line {
+            stroke: #e2e8f0;
+            stroke-width: 1;
+        }
+
+        .today-line {
+            stroke: #fca5a5;
+            stroke-width: 1.5;
+            stroke-dasharray: 6 5;
+        }
+
+        /* Ribbons */
+        .ribbon {
+            position: absolute;
+            height: 12px;
+            border-radius: 2px;
+        }
+
+        /* Cards */
+        .card {
+            position: absolute;
+            width: 240px;
+            border: 1.5px solid;
+            border-radius: 10px;
+            padding: 8px 10px;
+            display: grid;
+            grid-template-columns: 56px 1fr;
+            column-gap: 10px;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+            font-size: 12px;
+            color: #1e293b;
+        }
+
+        .card.male {
+            background: #eff6ff;
+            border-color: #60a5fa;
+        }
+
+        .card.female {
+            background: #fdf2f8;
+            border-color: #f472b6;
+        }
+
+        .card.other {
+            background: #f0fdf4;
+            border-color: #4ade80;
+        }
+
+        .card.drop {
+            outline: 3px dashed var(--accent);
+            outline-offset: 2px;
+        }
+
+        .photo {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            overflow: hidden;
+            background: #cbd5e1;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .photo img,
+        .photo svg {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .photo::after {
+            content: "Change";
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(15, 23, 42, 0.55);
+            color: #fff;
+            font-size: 11px;
+            opacity: 0;
+            transition: opacity 0.15s;
+        }
+
+        .photo:hover::after {
+            opacity: 1;
+        }
+
+        .photo-remove {
+            position: absolute;
+            left: 4px;
+            top: 4px;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            border: none;
+            background: #0f172a;
+            color: #fff;
+            font-size: 12px;
+            line-height: 18px;
+            padding: 0;
+            cursor: pointer;
+            display: none;
+        }
+
+        .card:hover .photo-remove {
+            display: block;
+        }
+
+        .info {
+            min-width: 0;
+        }
+
+        .name {
+            line-height: 1.3;
+            color: #334155;
+            overflow-wrap: anywhere;
+        }
+
+        .name.primary {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .dates {
+            margin-top: 4px;
+            color: #475569;
+            font-size: 11.5px;
+        }
+
+        .notes {
+            grid-column: 1 / -1;
+            margin-top: 8px;
+            padding-top: 6px;
+            border-top: 1px solid rgba(15, 23, 42, 0.1);
+            font-size: 11.5px;
+            line-height: 1.4;
+            overflow-wrap: anywhere;
+            user-select: text;
+        }
+
+        .notes p,
+        .notes ul,
+        .notes ol {
+            margin: 0 0 4px;
+        }
+
+        .notes ul,
+        .notes ol {
+            padding-left: 16px;
+        }
+
+        .notes> :last-child {
+            margin-bottom: 0;
+        }
+
+        .notes img {
+            max-width: 100%;
+        }
+
+        /* Collapse controls */
+        .toggle {
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            margin: -9px 0 0 -9px;
+            border-radius: 50%;
+            border: 1.5px solid var(--line);
+            background: #fff;
+            color: var(--text);
+            font: 600 13px/14px system-ui, sans-serif;
+            padding: 0;
+            cursor: pointer;
+            z-index: 1;
+        }
+
+        .toggle:hover {
+            background: #e0e7ff;
+        }
+
+        .collapsed-label {
+            position: absolute;
+            transform: translateY(-50%);
+            margin-left: 14px;
+            padding: 1px 8px;
+            border-radius: 10px;
+            background: #e2e8f0;
+            color: #334155;
+            font-size: 11px;
+            white-space: nowrap;
+        }
+
+        /* Compact view: smaller cards and tighter rows, for printing and small screens */
+        .compact .card {
+            width: 168px;
+            padding: 4px 6px;
+            grid-template-columns: 30px 1fr;
+            column-gap: 6px;
+            align-items: center;
+            border-width: 1px;
+            border-radius: 7px;
+        }
+
+        .compact .photo {
+            width: 30px;
+            height: 30px;
+        }
+
+        .compact .photo::after {
+            content: "✎";
+            font-size: 12px;
+        }
+
+        .compact .name.primary {
+            font-size: 12px;
+            line-height: 1.2;
+        }
+
+        .compact .dates {
+            margin-top: 1px;
+            font-size: 10.5px;
+        }
+
+        .compact .ribbon {
+            height: 6px;
+            border-radius: 1px;
+        }
+
+        .compact .toggle {
+            width: 14px;
+            height: 14px;
+            margin: -7px 0 0 -7px;
+            border-width: 1px;
+            font-size: 11px;
+            line-height: 11px;
+        }
+
+        .compact .collapsed-label {
+            margin-left: 10px;
+            padding: 0 6px;
+            font-size: 10px;
+        }
+
+        /* Print view: text-only cards in one column per generation */
+        #world.print {
+            background: #fff;
+        }
+
+        .print-mode .axis {
+            display: none;
+        }
+
+        .print .card,
+        .print .card.male,
+        .print .card.female,
+        .print .card.other {
+            display: block;
+            width: 210px;
+            padding: 5px 8px;
+            background: #fff;
+            border: 1px solid #cbd5e1;
+            border-left-width: 4px;
+            border-radius: 4px;
+            box-shadow: none;
+        }
+
+        .print .card.male {
+            border-left-color: #3b82f6;
+        }
+
+        .print .card.female {
+            border-left-color: #ec4899;
+        }
+
+        .print .card.other {
+            border-left-color: #22c55e;
+        }
+
+        .print .name.primary {
+            font-size: 12.5px;
+        }
+
+        .print .alt-names {
+            font-size: 11px;
+            color: #475569;
+            overflow-wrap: anywhere;
+        }
+
+        .print .dates {
+            margin-top: 2px;
+            font-size: 11px;
+        }
+
+        .print .notes {
+            margin-top: 4px;
+            padding-top: 4px;
+            font-size: 11px;
+        }
+
+        /* Footer note at the bottom of exports and printouts */
+        .page-footer {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 10px 40px 14px;
+            border-top: 1px solid #e2e8f0;
+            background: #fff;
+            font-size: 12px;
+            color: #475569;
+        }
+
+        #printFooter {
+            display: none;
+        }
+
+        .gen-band {
+            position: absolute;
+            top: 0;
+            background: #f1f5f9;
+        }
+
+        .gen-head {
+            position: absolute;
+            top: 14px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #334155;
+            white-space: nowrap;
+        }
+
+        @media print {
+            html,
+            body {
+                height: auto;
+                display: block;
+                background: #fff;
+            }
+
+            #toolbar,
+            #editorPane,
+            #divider,
+            .axis,
+            #empty,
+            .no-export {
+                display: none !important;
+            }
+
+            main {
+                display: block;
+            }
+
+            #printFooter:not(:empty) {
+                display: flex;
+                padding: 8px 0 0;
+                break-inside: avoid;
+            }
+
+            #view {
+                position: static;
+                overflow: visible;
+                background: #fff;
+            }
+
+            #world {
+                position: relative;
+                transform: none !important;
+                zoom: var(--print-zoom, 1);
+            }
+        }
+
+        @media (max-width: 1100px) {
+            #toolbar .hint {
+                display: none;
+            }
+        }
+
+        @media (max-width: 700px) {
+            #toolbar {
+                gap: 4px;
+                padding: 4px 6px;
+            }
+
+            #toolbar .title,
+            #toolbar .sep {
+                display: none;
+            }
+
+            #toolbar button {
+                font-size: 12px;
+                padding: 4px 7px;
+            }
+        }
+
+        /* Off-screen copy of the tree used for PNG/PDF export */
+        .export-stage {
+            position: fixed;
+            left: -200000px;
+            top: 0;
+            background: var(--bg);
+        }
+
+        .export-stage .axis {
+            position: relative;
+        }
+    </style>
+</head>
+
+<body>
+    <header id="toolbar">
+        <span class="title">Family Tree</span>
+        <button id="btnToggleEditor">Hide editor</button>
+        <span class="sep"></span>
+        <button id="btnOpen" title="Open a .csv file, or a .zip saved with photos">Open…</button>
+        <button id="btnSave" title="Download the tree as a .csv file">Save CSV</button>
+        <button id="btnSaveZip" title="Download the .csv together with all photos as a .zip">Save with photos</button>
+        <button id="btnReset">Reset to sample</button>
+        <span class="sep"></span>
+        <button id="btnZoomOut" title="Zoom out">−</button>
+        <button id="btnZoomIn" title="Zoom in">+</button>
+        <button id="btnFit">Fit</button>
+        <select id="viewMode" title="Choose how the tree is shown">
+            <option value="detailed">Detailed view</option>
+            <option value="compact">Compact view</option>
+            <option value="print">Print view</option>
+        </select>
+        <span class="sep"></span>
+        <button id="btnPng">Export PNG</button>
+        <button id="btnPdf">Export PDF</button>
+        <button id="btnPrint" title="Print the tree, scaled to the page width">Print…</button>
+        <input type="text" id="footerNote" placeholder="Footer note, e.g. Maintained by …"
+            title="Printed at the bottom of PNG/PDF exports and printouts. Leave empty for none.">
+        <span class="hint">Drag to pan · Scroll to move · Ctrl + scroll to zoom · Click a photo to set it · Double-click a card to edit</span>
+        <input type="file" id="fileOpen" accept=".csv,.tsv,.txt,.zip,.yaml,.yml" hidden>
+        <input type="file" id="filePhoto" accept="image/*" hidden>
+    </header>
+    <main>
+        <section id="editorPane">
+            <div id="editor"></div>
+            <div id="colInfo"></div>
+            <div id="status"></div>
+        </section>
+        <div id="divider"></div>
+        <section id="view">
+            <div id="world" class="world">
+                <svg id="grid" class="layer"></svg>
+                <div id="ribbons" class="layer"></div>
+                <svg id="lines" class="layer"></svg>
+                <div id="cards" class="layer"></div>
+                <div id="controls" class="layer"></div>
+            </div>
+            <div id="empty" hidden>Add people to the config to see the tree.</div>
+            <div id="axisTop" class="axis top"></div>
+            <div id="axisBottom" class="axis bottom"></div>
+        </section>
+    </main>
+    <div id="printFooter" class="page-footer"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.11/html-to-image.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script>
+        // ---------- Constants ----------
+        // Layout sizes depend on the view viewMode (detailed or compact); see applyViewMode().
+        //   cardW:   fixed card width (px), independent of zoom
+        //   buf:     gap between the birth point and the card, so the ribbon start is visible
+        //   rowGap:  vertical gap between rows
+        //   margin:  minimum space between a parents' card and their first child's birth point
+        const DENSITY = {
+            detailed: { cardW: 240, buf: 24, rowGap: 26, ribbonH: 12, margin: 70, colGap: 0 },
+            compact: { cardW: 168, buf: 10, rowGap: 14, ribbonH: 6, margin: 36, colGap: 0 },
+            print: { cardW: 210, buf: 0, rowGap: 12, ribbonH: 0, margin: 0, colGap: 72 },   // colGap: space between generation columns
+        };
+        let CARD_W, BUF, ROW_GAP, RIBBON_H, TRUNK_MARGIN, COL_GAP;
+        const PAD_L = 40, PAD_T = 48, PAD_B = 48;
+        const AXIS_H = 28;
+        const MAX_PPY = 400;      // max pixels per year
+        const STORE_KEY = 'familytree.csv';
+        const OLD_YAML_KEY = 'familytree.yaml';   // used by the earlier YAML version; migrated on first load
+        const COLLAPSE_KEY = 'familytree.collapsed';
+        const DENSITY_KEY = 'familytree.viewMode';
+        const RIBBON_COLORS = { male: '#93c5fd', female: '#f9a8d4', other: '#86efac' };
+        // SVG strokes are set as attributes (not CSS) so they survive PNG/PDF export.
+        const STROKE_CONN = 'fill="none" stroke="#64748b" stroke-width="1.6"';
+        const STROKE_DBL_OUTER = 'fill="none" stroke="#64748b" stroke-width="5"';
+        const STROKE_DBL_INNER = 'fill="none" stroke="#f8fafc" stroke-width="1.6"';
+        const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const SILHOUETTE = '<svg viewBox="0 0 56 56" xmlns="http://www.w3.org/2000/svg"><rect width="56" height="56" fill="#cbd5e1"/><circle cx="28" cy="21" r="10" fill="#f8fafc"/><path d="M8 54c2-12 10-18 20-18s18 6 20 18z" fill="#f8fafc"/></svg>';
+        const SILHOUETTE_URI = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(SILHOUETTE);
+
+        const CSV_COLUMNS = ['id', 'gender', 'names', 'birth', 'death', 'parents', 'spouses', 'adopted', 'photo', 'notes'];
+        const CSV_GUIDE = `# Family Tree: one row per person. Lines starting with # are ignored.
+#   id       any unique number or text
+#   gender   m, f or o (other)
+#   names    separated by |  The first one is the primary name; any script works.
+#   birth    YYYY, YYYY-MM or YYYY-MM-DD. Put ~ in front if approximate, e.g. ~1935
+#   death    same format; leave empty if the person is living
+#   parents  ids of the parents joined with +, e.g. 1+2 (or a single id)
+#   spouses  only needed for couples with no children in the list, e.g. 12
+#   adopted  yes if adopted by the parents in this row
+#   photo    optional image URL (or click the photo on a card to add one from your computer)
+#   notes    optional Markdown. Wrap it in "double quotes" if it has commas or line breaks
+`;
+
+        const SAMPLE = CSV_GUIDE + `
+id,gender,names,birth,death,parents,spouses,adopted,photo,notes
+1,m,Vishwanath Deshmukh|विश्वनाथ देशमुख|Nana,~1935,2005-11-20,,,,,"Schoolteacher in **Satara** for 30 years.
+Loved gardening and old Marathi songs."
+2,f,Kamala Deshmukh|कमला देशमुख|Aai,1940-04-02
+
+# Children of Vishwanath & Kamala
+3,m,Prakash Deshmukh|प्रकाश देशमुख,1962-08-15,,1+2
+4,f,Sunanda Joshi|सुनंदा जोशी|Sunanda Deshmukh,1964-12-01,,1+2
+5,m,Anand Deshmukh|आनंद देशमुख|Andy,1968-03-30,,1+2
+6,f,Lata Rao|लता राव|Lata Deshmukh,1972-06-25,,1+2
+
+# Spouses
+7,f,Meera Deshmukh|मीरा देशमुख|Meera Kulkarni,1966-01-10,,19+20
+8,m,Rajesh Joshi|राजेश जोशी,1960-05-21
+9,f,Priya Deshmukh|प्रिया देशमुख,1971-09-09
+10,m,Vikram Rao|विक्रम राव,1970-02-14
+
+# Grandchildren
+11,m,Rohan Deshmukh|रोहन देशमुख,1990-04-12,,3+7
+12,f,Neha Deshmukh|नेहा देशमुख,1993-11-02,,3+7
+13,f,Aditi Joshi|अदिती जोशी,1989-07-07,,8+4
+14,m,Kunal Joshi|कुणाल जोशी,1992-01-15,,8+4
+15,m,Arjun Deshmukh|अर्जुन देशमुख,2001-05-05,,5+9,,,,Twin of Ishaan.
+16,m,Ishaan Deshmukh|ईशान देशमुख,2001-05-05,,5+9,,,,Twin of Arjun.
+17,f,Tara Rao|तारा राव,1996-02-28,,10+6
+18,f,Diya Rao|दिया राव,1999-08-19,,10+6
+
+# Meera's family (in-laws)
+19,m,Shrinivas Kulkarni|श्रीनिवास कुलकर्णी,~1938,~2015
+20,f,Sharada Kulkarni|शारदा कुलकर्णी,1942-07-19
+21,m,Anil Kulkarni|अनिल कुलकर्णी,1969-03-03,,19+20
+`;
+
+        // ---------- Dates ----------
+        function parseDate(v) {
+            if (v === null || v === undefined || String(v).trim() === '') return null;
+            let s = String(v).trim();
+            let approx = false;
+            if (s.startsWith('~')) { approx = true; s = s.slice(1).trim(); }
+            const m = /^(\d{1,4})(?:-(\d{1,2})(?:-(\d{1,2}))?)?$/.exec(s);
+            if (!m) throw new Error(`invalid date "${v}" (use YYYY, YYYY-MM or YYYY-MM-DD, with ~ in front if approximate)`);
+            const y = +m[1], mo = m[2] ? +m[2] : null, d = m[3] ? +m[3] : null;
+            if (mo !== null && (mo < 1 || mo > 12)) throw new Error(`invalid month in "${v}"`);
+            if (d !== null && (d < 1 || d > 31)) throw new Error(`invalid day in "${v}"`);
+            let t, text;
+            if (mo === null) { t = y + 0.5; text = `${y}`; }
+            else if (d === null) { t = y + (mo - 0.5) / 12; text = `${MONTHS[mo - 1]} ${y}`; }
+            else { t = y + (mo - 1 + (d - 0.5) / 31) / 12; text = `${d} ${MONTHS[mo - 1]} ${y}`; }
+            return { t, approx, text: approx ? `c. ${text}` : text, short: approx ? `c.${y}` : `${y}` };
+        }
+
+        function todayT() {
+            const n = new Date();
+            return n.getFullYear() + (n.getMonth() + (n.getDate() - 0.5) / 31) / 12;
+        }
+
+        // ---------- Model ----------
+        function buildModel(doc) {
+            const warnings = [];
+            if (!doc || typeof doc !== 'object' || Array.isArray(doc)) {
+                throw new Error('The config must be a map with "people" and "families" sections.');
+            }
+            const toList = v => v == null ? [] : Array.isArray(v) ? v : [v];
+
+            const people = new Map();
+            if (doc.people != null && !Array.isArray(doc.people)) warnings.push('"people" should be a list.');
+            toList(Array.isArray(doc.people) ? doc.people : []).forEach((raw, i) => {
+                const where = (raw && raw._where) || `people[${i}]`;
+                if (!raw || typeof raw !== 'object') { warnings.push(`${where}: not a person entry.`); return; }
+                if (raw.id == null) { warnings.push(`${where}: missing id.`); return; }
+                const key = String(raw.id);
+                if (people.has(key)) { warnings.push(`${where}: duplicate id ${key}.`); return; }
+                let names = toList(raw.names ?? raw.name).map(n => String(n).trim()).filter(Boolean);
+                if (!names.length) { warnings.push(`Person ${key}: no names.`); names = ['(unnamed)']; }
+                const label = `Person ${key} (${names[0]})`;
+                let gender = String(raw.gender || '').toLowerCase();
+                if (!['male', 'female', 'other'].includes(gender)) {
+                    warnings.push(raw.gender ? `${label}: unknown gender "${raw.gender}", using "other".` : `${label}: missing gender, using "other".`);
+                    gender = 'other';
+                }
+                let birth = null, death = null;
+                try { birth = parseDate(raw.birth); } catch (e) { warnings.push(`${label}: birth ${e.message}.`); }
+                if (!birth) { warnings.push(`${label}: needs a birth date (an approximate year like ~1930 is fine). Not shown.`); return; }
+                try { death = parseDate(raw.death); } catch (e) { warnings.push(`${label}: death ${e.message}.`); }
+                if (death && death.t < birth.t) { warnings.push(`${label}: death is before birth.`); death = null; }
+                people.set(key, {
+                    key, id: raw.id, names, gender, birth, death,
+                    photo: raw.photo ? String(raw.photo) : null,
+                    notes: raw.notes != null ? String(raw.notes) : '',
+                });
+            });
+
+            const families = [];
+            const famsAsParent = new Map();
+            const birthFam = new Map();
+            if (doc.families != null && !Array.isArray(doc.families)) warnings.push('"families" should be a list.');
+            toList(Array.isArray(doc.families) ? doc.families : []).forEach((raw, i) => {
+                const where = (raw && raw._where) || `families[${i}]`;
+                if (!raw || typeof raw !== 'object') { warnings.push(`${where}: not a family entry.`); return; }
+                const ref = id => {
+                    const p = people.get(String(id));
+                    if (!p) warnings.push(`${where}: unknown or hidden person id ${id}.`);
+                    return p;
+                };
+                const parents = [...new Set(toList(raw.parents).map(String))].map(ref).filter(Boolean);
+                if (!parents.length) { warnings.push(`${where}: no valid parents.`); return; }
+                if (parents.length > 2) { warnings.push(`${where}: more than 2 parents, extra ones ignored.`); parents.length = 2; }
+                const adopted = new Set(toList(raw.adopted).map(String));
+                const children = [];
+                for (const id of [...toList(raw.children).map(String), ...adopted]) {
+                    if (children.some(c => c.key === id)) continue;
+                    const c = ref(id);
+                    if (!c) continue;
+                    if (parents.includes(c)) { warnings.push(`${where}: ${c.names[0]} is listed as their own child.`); continue; }
+                    children.push(c);
+                }
+                children.sort((a, b) => a.birth.t - b.birth.t);
+                let key = parents.map(p => p.key).join('+');
+                while (families.some(f => f.key === key)) key += "'";
+                const fam = { key, parents, children, adopted, status: raw.status ? String(raw.status) : 'married' };
+                families.push(fam);
+                for (const p of parents) {
+                    if (!famsAsParent.has(p.key)) famsAsParent.set(p.key, []);
+                    famsAsParent.get(p.key).push(fam);
+                }
+                for (const c of children) {
+                    const prev = birthFam.get(c.key);
+                    if (!prev || (prev.adopted.has(c.key) && !adopted.has(c.key))) birthFam.set(c.key, fam);
+                }
+            });
+
+            return { people, families, famsAsParent, birthFam, warnings };
+        }
+
+        // ---------- CSV ----------
+        // Parses CSV (comma, tab or semicolon separated, detected from the header row).
+        // Blank lines and lines starting with # are skipped. Each record keeps the line it starts on.
+        function parseCSV(text) {
+            const firstLine = text.split(/\r?\n/).find(l => l.trim() && !l.trimStart().startsWith('#')) || '';
+            const delim = [',', '\t', ';']
+                .map(d => [d, firstLine.split(d).length])
+                .sort((a, b) => b[1] - a[1])[0][0];
+            const recs = [];
+            const n = text.length;
+            let i = 0, line = 1;
+            while (i < n) {
+                let eol = text.indexOf('\n', i);
+                if (eol < 0) eol = n;
+                const phys = text.slice(i, eol);
+                if (!phys.trim() || phys.trimStart().startsWith('#')) { i = eol + 1; line++; continue; }
+
+                const startLine = line;
+                const fields = [];
+                let field = '', inQ = false;
+                while (i < n) {
+                    const c = text[i];
+                    if (inQ) {
+                        if (c === '"') {
+                            if (text[i + 1] === '"') { field += '"'; i += 2; continue; }
+                            inQ = false; i++; continue;
+                        }
+                        if (c === '\n') line++;
+                        if (c !== '\r') field += c;
+                        i++;
+                        continue;
+                    }
+                    if (c === '"' && field.trim() === '') { inQ = true; field = ''; i++; continue; }
+                    if (c === delim) { fields.push(field); field = ''; i++; continue; }
+                    if (c === '\n') { i++; line++; break; }
+                    if (c !== '\r') field += c;
+                    i++;
+                }
+                if (inQ) {
+                    const e = new Error('A quoted value is never closed. Check for a missing " in this row.');
+                    e.line = startLine;
+                    throw e;
+                }
+                fields.push(field);
+                recs.push({ fields: fields.map(f => f.trim()), line: startLine });
+            }
+            return { recs, delim };
+        }
+
+        const GENDERS = { m: 'male', male: 'male', man: 'male', boy: 'male', f: 'female', female: 'female', woman: 'female', girl: 'female', o: 'other', other: 'other' };
+        const COLUMN_ALIASES = { name: 'names', sex: 'gender', born: 'birth', dob: 'birth', died: 'death', dod: 'death', parent: 'parents', spouse: 'spouses', note: 'notes', picture: 'photo', photos: 'photo' };
+        let csvInfo = { cols: CSV_COLUMNS, delim: ',' };   // header of the last parsed text, for the column hint
+
+        // Turns the CSV into the people/families structure used by buildModel.
+        // Families are inferred from each child's "parents" value, plus "spouses" for childless couples.
+        function csvToDoc(text) {
+            const { recs, delim } = parseCSV(text);
+            const warnings = [];
+            if (!recs.length) return { people: [], families: [], warnings };
+            const header = recs[0];
+            const cols = header.fields.map(h => {
+                const k = h.toLowerCase().replace(/[^a-z]/g, '');
+                return COLUMN_ALIASES[k] || k;
+            });
+            if (!cols.includes('id') || !cols.includes('names')) {
+                const e = new Error(`The first row must be the column names, e.g. ${CSV_COLUMNS.join(',')}`);
+                e.line = header.line;
+                throw e;
+            }
+            csvInfo = { cols, delim };
+            cols.forEach((c, i) => {
+                if (c && !CSV_COLUMNS.includes(c)) warnings.push(`Column "${header.fields[i]}" is not recognised and is ignored.`);
+            });
+
+            const splitIds = v => (v || '').split(/[+;,&/\s]+/).map(x => x.trim()).filter(Boolean);
+            const people = [], families = [], famMap = new Map();
+            const famFor = (ids, line) => {
+                const k = [...ids].sort().join('+');
+                let f = famMap.get(k);
+                if (!f) {
+                    f = { parents: ids, children: [], adopted: [], _where: `Line ${line}` };
+                    famMap.set(k, f);
+                    families.push(f);
+                }
+                return f;
+            };
+            for (const r of recs.slice(1)) {
+                const row = {};
+                cols.forEach((c, i) => { if (c) row[c] = r.fields[i] ?? ''; });
+                if (r.fields.slice(cols.length).some(Boolean)) {
+                    warnings.push(`Line ${r.line}: more values than columns. Text containing commas needs "double quotes".`);
+                }
+                if (!row.id) {
+                    if (r.fields.some(Boolean)) warnings.push(`Line ${r.line}: missing id, row ignored.`);
+                    continue;
+                }
+                const g = (row.gender || '').toLowerCase();
+                people.push({
+                    id: row.id,
+                    gender: GENDERS[g] ?? (g || null),
+                    names: (row.names || '').split('|'),
+                    birth: row.birth,
+                    death: row.death,
+                    photo: row.photo,
+                    notes: row.notes,
+                    _where: `Line ${r.line}`,
+                });
+                const ps = [...new Set(splitIds(row.parents))];
+                if (ps.length) {
+                    const f = famFor(ps, r.line);
+                    (/^(y|yes|true|1|x)$/i.test(row.adopted || '') ? f.adopted : f.children).push(row.id);
+                }
+                for (const sp of splitIds(row.spouses)) famFor([row.id, sp], r.line);
+            }
+
+            // Order each person's families (marriages) by when their first child was born.
+            const born = new Map(people.map(p => {
+                try { return [p.id, parseDate(p.birth)?.t ?? Infinity]; } catch { return [p.id, Infinity]; }
+            }));
+            const firstChild = f => Math.min(Infinity, ...[...f.children, ...f.adopted].map(id => born.get(id) ?? Infinity));
+            families.sort((a, b) => {
+                const x = firstChild(a), y = firstChild(b);
+                return x === y ? 0 : x < y ? -1 : 1;
+            });
+            return { people, families, warnings };
+        }
+
+        function csvRow(values) {
+            const out = values.map(v => {
+                const s = v == null ? '' : String(v);
+                return /[",\n\r]|^\s|\s$/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+            });
+            while (out.length && out[out.length - 1] === '') out.pop();
+            return out.join(',');
+        }
+
+        // Converts a config from the earlier YAML version into CSV text (+ its embedded photos).
+        function yamlToCsv(doc) {
+            const toList = v => v == null ? [] : Array.isArray(v) ? v : [v];
+            const parentsOf = new Map(), adopted = new Set(), spouses = new Map();
+            for (const f of toList(doc && doc.families)) {
+                if (!f || typeof f !== 'object') continue;
+                const ps = toList(f.parents).map(String);
+                const ad = toList(f.adopted).map(String);
+                const kids = [...toList(f.children).map(String), ...ad];
+                for (const c of kids) {
+                    if (parentsOf.has(c)) continue;
+                    parentsOf.set(c, ps.join('+'));
+                    if (ad.includes(c)) adopted.add(c);
+                }
+                if (!kids.length && ps.length === 2) {
+                    if (!spouses.has(ps[0])) spouses.set(ps[0], []);
+                    spouses.get(ps[0]).push(ps[1]);
+                }
+            }
+            const short = { male: 'm', female: 'f', other: 'o' };
+            const lines = [CSV_COLUMNS.join(',')];
+            for (const p of toList(doc && doc.people)) {
+                if (!p || typeof p !== 'object' || p.id == null) continue;
+                const id = String(p.id);
+                const g = String(p.gender ?? '').toLowerCase();
+                lines.push(csvRow([
+                    id, short[g] || g, toList(p.names ?? p.name).map(String).join('|'),
+                    p.birth ?? '', p.death ?? '', parentsOf.get(id) || '', (spouses.get(id) || []).join('+'),
+                    adopted.has(id) ? 'yes' : '', p.photo || '', p.notes != null ? String(p.notes).trimEnd() : '',
+                ]));
+            }
+            const photos = new Map();
+            if (doc && doc.photos && typeof doc.photos === 'object') {
+                for (const [k, v] of Object.entries(doc.photos)) if (v) photos.set(String(k), String(v));
+            }
+            return { text: CSV_GUIDE + '\n' + lines.join('\n') + '\n', photos };
+        }
+
+        // ---------- Photo storage (IndexedDB, kept in this browser) ----------
+        const photoStore = (() => {
+            let dbp = null;
+            const open = () => dbp ??= new Promise((res, rej) => {
+                const r = indexedDB.open('familytree', 1);
+                r.onupgradeneeded = () => r.result.createObjectStore('photos');
+                r.onsuccess = () => res(r.result);
+                r.onerror = () => rej(r.error);
+            });
+            const run = (mode, fn) => open().then(db => new Promise((res, rej) => {
+                const t = db.transaction('photos', mode);
+                fn(t.objectStore('photos'));
+                t.oncomplete = () => res();
+                t.onerror = t.onabort = () => rej(t.error);
+            }));
+            return {
+                async loadAll() {
+                    const out = new Map();
+                    await run('readonly', st => {
+                        const c = st.openCursor();
+                        c.onsuccess = () => {
+                            const cur = c.result;
+                            if (cur) { out.set(String(cur.key), cur.value); cur.continue(); }
+                        };
+                    });
+                    return out;
+                },
+                put: (k, v) => run('readwrite', st => st.put(v, k)),
+                del: k => run('readwrite', st => st.delete(k)),
+                replaceAll: map => run('readwrite', st => {
+                    st.clear();
+                    for (const [k, v] of map) st.put(v, k);
+                }),
+            };
+        })();
+
+        function descendantCounts(m) {
+            const memo = new Map();
+            const get = (p, stack) => {
+                if (memo.has(p.key)) return memo.get(p.key);
+                const s = new Set();
+                if (stack.has(p.key)) return s;
+                stack.add(p.key);
+                for (const f of m.famsAsParent.get(p.key) || []) {
+                    for (const c of f.children) {
+                        if (s.has(c.key)) continue;
+                        s.add(c.key);
+                        get(c, stack).forEach(k => s.add(k));
+                    }
+                }
+                stack.delete(p.key);
+                memo.set(p.key, s);
+                return s;
+            };
+            const out = new Map();
+            for (const p of m.people.values()) out.set(p.key, get(p, new Set()).size);
+            return out;
+        }
+
+        // Groups people joined by marriage (spouses, and spouses of spouses). Returns a find() function.
+        function spouseGroups(m) {
+            const parent = new Map();
+            const find = k => {
+                while (parent.get(k) !== k) { parent.set(k, parent.get(parent.get(k))); k = parent.get(k); }
+                return k;
+            };
+            for (const p of m.people.values()) parent.set(p.key, p.key);
+            for (const f of m.families) {
+                if (f.parents.length === 2) parent.set(find(f.parents[0].key), find(f.parents[1].key));
+            }
+            return find;
+        }
+
+        // Generation number of each person for the print view: spouses share a generation and
+        // children are one generation after their parents. Each separate tree starts at 0.
+        function computeGenerations(m, rows) {
+            const find = spouseGroups(m);
+            const adj = new Map();
+            const link = (a, b, d) => {
+                if (!adj.has(a)) adj.set(a, []);
+                adj.get(a).push([b, d]);
+            };
+            for (const f of m.families) {
+                const pg = find(f.parents[0].key);
+                for (const c of f.children) {
+                    const cg = find(c.key);
+                    if (cg !== pg) { link(pg, cg, 1); link(cg, pg, -1); }
+                }
+            }
+            const gen = new Map();
+            for (const p of rows) {
+                const start = find(p.key);
+                if (gen.has(start)) continue;
+                gen.set(start, 0);
+                const comp = [start];
+                for (let i = 0; i < comp.length; i++) {
+                    for (const [h, d] of adj.get(comp[i]) || []) {
+                        if (!gen.has(h)) { gen.set(h, gen.get(comp[i]) + d); comp.push(h); }
+                    }
+                }
+                const min = Math.min(...comp.map(g => gen.get(g)));
+                for (const g of comp) gen.set(g, gen.get(g) - min);
+            }
+            const out = new Map();
+            for (const p of rows) out.set(p.key, gen.get(find(p.key)));
+            return out;
+        }
+
+        // Spouses share a card column, placed at the latest birth date in the group.
+        function computeColumns(m) {
+            const find = spouseGroups(m);
+            const max = new Map();
+            for (const p of m.people.values()) {
+                const r = find(p.key);
+                max.set(r, Math.max(max.get(r) ?? -Infinity, p.birth.t));
+            }
+            const col = new Map();
+            for (const p of m.people.values()) col.set(p.key, max.get(find(p.key)));
+            return col;
+        }
+
+        // ---------- Row ordering ----------
+        // Depth-first from the person with the most descendants. Each person is followed by
+        // their spouse(s), then their children in birth order. A married-in spouse whose own
+        // family is in the data gets that family placed as a block right next to them.
+        function buildRows(m, collapsed) {
+            const placed = new Set();
+            const rows = [];
+            const hidden = new Set();
+            const famHidden = new Map();
+
+            const push = (p, vis) => {
+                placed.add(p.key);
+                if (vis) rows.push(p); else hidden.add(p.key);
+            };
+            const climb = (s, seen = new Set()) => {
+                if (seen.has(s.key)) return null;
+                seen.add(s.key);
+                const f = m.birthFam.get(s.key);
+                if (!f) return null;
+                const ps = f.parents.filter(q => !placed.has(q.key));
+                if (!ps.length) return null;
+                const q = ps.find(q => m.birthFam.has(q.key)) || ps[0];
+                return climb(q, seen) || q;
+            };
+            const hasInlaws = s => {
+                const f = m.birthFam.get(s.key);
+                return !!f && f.parents.some(q => !placed.has(q.key));
+            };
+            const emitInlaws = (s, vis) => {
+                const top = climb(s);
+                if (top) emitDescent(top, vis);
+            };
+            function emitDescent(p, vis) {
+                if (placed.has(p.key)) return;
+                const fams = m.famsAsParent.get(p.key) || [];
+                const spouses = [];
+                for (const f of fams) {
+                    for (const q of f.parents) {
+                        if (q !== p && !placed.has(q.key) && !spouses.includes(q)) spouses.push(q);
+                    }
+                }
+                // The first spouse goes above if they bring their own family (placed above them) or if
+                // there are several spouses, so the first two marriages each get an adjacent row.
+                // All other spouses go below.
+                let above = null;
+                const below = [];
+                spouses.forEach((s, i) => {
+                    if (i === 0 && (hasInlaws(s) || spouses.length > 1)) above = s; else below.push(s);
+                });
+                placed.add(p.key);
+                spouses.forEach(s => placed.add(s.key));
+
+                if (above) { emitInlaws(above, vis); push(above, vis); }
+                push(p, vis);
+                below.forEach(s => push(s, vis));
+                below.forEach(s => emitInlaws(s, vis));
+
+                for (const f of fams) {
+                    const isCollapsed = collapsed.has(f.key);
+                    const before = hidden.size;
+                    for (const c of f.children) if (!placed.has(c.key)) emitDescent(c, vis && !isCollapsed);
+                    if (isCollapsed) famHidden.set(f.key, hidden.size - before);
+                }
+            }
+
+            const desc = descendantCounts(m);
+            const order = [...m.people.values()].sort((a, b) => desc.get(b.key) - desc.get(a.key) || a.birth.t - b.birth.t);
+            for (const p of order) {
+                while (!placed.has(p.key)) emitDescent(climb(p) || p, true);
+            }
+            return { rows, visible: new Set(rows.map(p => p.key)), famHidden };
+        }
+
+        // ---------- State ----------
+        const $ = id => document.getElementById(id);
+        const view = $('view'), world = $('world');
+        let model = null;
+        let columns = new Map();
+        let heights = new Map();
+        let layout = null;          // { rows, visible, famHidden, top: Map, worldH }
+        let rects = new Map();      // card rectangles in world coordinates
+        let worldW = 0;
+        let ppy = 15, tx = 0, ty = 0, minPpy = 4;
+        let startT = 1900, endT = todayT();
+        let collapsed = new Set(loadJSON(COLLAPSE_KEY, []));
+        let photoTarget = null;
+        let photos = new Map();       // person id -> image data URL, stored in IndexedDB
+        let currentFileName = 'family-tree.csv';
+        let viewMode = loadJSON(DENSITY_KEY, 'detailed');
+        if (!DENSITY[viewMode]) viewMode = 'detailed';
+        let printScale = 1;           // the print view zooms by scaling the whole tree (it has no timeline)
+        const isPrint = () => viewMode === 'print';
+
+        function applyViewMode() {
+            ({ cardW: CARD_W, buf: BUF, rowGap: ROW_GAP, ribbonH: RIBBON_H, margin: TRUNK_MARGIN, colGap: COL_GAP } = DENSITY[viewMode]);
+            world.classList.toggle('compact', viewMode === 'compact');
+            world.classList.toggle('print', isPrint());
+            view.classList.toggle('print-mode', isPrint());
+            $('viewMode').value = viewMode;
+        }
+        applyViewMode();
+
+        function loadJSON(key, fallback) {
+            try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch { return fallback; }
+        }
+        function storeSet(key, value) {
+            try { localStorage.setItem(key, value); return true; } catch { return false; }
+        }
+
+        const X = t => PAD_L + (t - startT) * ppy;
+
+        // ---------- Cards ----------
+        function photoFor(p) {
+            return photos.get(p.key) || p.photo || null;
+        }
+
+        function notesEl(p) {
+            const notes = document.createElement('div');
+            notes.className = 'notes';
+            notes.innerHTML = DOMPurify.sanitize(marked.parse(p.notes, { breaks: true }));
+            notes.querySelectorAll('a').forEach(a => { a.target = '_blank'; a.rel = 'noopener noreferrer'; });
+            notes.querySelectorAll('img').forEach(img => img.addEventListener('load', remeasure));
+            return notes;
+        }
+
+        function buildCards() {
+            const layer = $('cards');
+            layer.innerHTML = '';
+            heights = new Map();
+            const els = [];
+            for (const p of model.people.values()) {
+                const el = document.createElement('div');
+                el.className = `card ${p.gender}`;
+                el.dataset.key = p.key;
+
+                if (isPrint()) {
+                    // Text only: names, then birth and death dates.
+                    const info = document.createElement('div');
+                    info.className = 'info';
+                    const primary = document.createElement('div');
+                    primary.className = 'name primary';
+                    primary.textContent = p.names[0];
+                    info.appendChild(primary);
+                    if (p.names.length > 1) {
+                        const alt = document.createElement('div');
+                        alt.className = 'alt-names';
+                        alt.textContent = p.names.slice(1).join(' · ');
+                        info.appendChild(alt);
+                    }
+                    const dates = document.createElement('div');
+                    dates.className = 'dates';
+                    dates.textContent = `b. ${p.birth.text}` + (p.death ? ` · d. ${p.death.text}` : '');
+                    info.appendChild(dates);
+                    el.appendChild(info);
+                    if (p.notes.trim()) el.appendChild(notesEl(p));
+                    layer.appendChild(el);
+                    els.push(el);
+                    continue;
+                }
+
+                const photo = document.createElement('div');
+                photo.className = 'photo';
+                photo.title = 'Click or drop an image to set the photo';
+                const src = photoFor(p);
+                if (src) {
+                    const img = document.createElement('img');
+                    img.alt = '';
+                    img.onerror = () => { photo.innerHTML = SILHOUETTE; };
+                    img.src = src;
+                    photo.appendChild(img);
+                } else {
+                    photo.innerHTML = SILHOUETTE;
+                }
+                el.appendChild(photo);
+
+                const compact = viewMode === 'compact';
+                if (compact) {
+                    // Everything that doesn't fit on the small card is shown on hover.
+                    el.title = [...p.names, `b. ${p.birth.text}` + (p.death ? ` · d. ${p.death.text}` : ''), p.notes.trim()]
+                        .filter(Boolean).join('\n');
+                }
+                if (photos.has(p.key) && !compact) {
+                    const rm = document.createElement('button');
+                    rm.className = 'photo-remove no-export';
+                    rm.title = 'Remove photo';
+                    rm.textContent = '×';
+                    rm.dataset.remove = p.key;
+                    el.appendChild(rm);
+                }
+
+                const info = document.createElement('div');
+                info.className = 'info';
+                (compact ? p.names.slice(0, 1) : p.names).forEach((n, i) => {
+                    const d = document.createElement('div');
+                    d.className = i === 0 ? 'name primary' : 'name';
+                    d.textContent = n;
+                    info.appendChild(d);
+                });
+                const dates = document.createElement('div');
+                dates.className = 'dates';
+                dates.textContent = compact
+                    ? (p.death ? `${p.birth.short} – ${p.death.short}` : `b. ${p.birth.short}`)
+                    : `b. ${p.birth.text}` + (p.death ? ` · d. ${p.death.text}` : '');
+                info.appendChild(dates);
+                el.appendChild(info);
+
+                if (p.notes.trim() && !compact) el.appendChild(notesEl(p));
+                layer.appendChild(el);
+                els.push(el);
+            }
+            for (const el of els) heights.set(el.dataset.key, el.offsetHeight);
+        }
+
+        let remeasureTimer = 0;
+        function remeasure() {
+            clearTimeout(remeasureTimer);
+            remeasureTimer = setTimeout(() => {
+                if (!model) return;
+                for (const el of $('cards').children) {
+                    if (el.style.display !== 'none') heights.set(el.dataset.key, el.offsetHeight);
+                }
+                relayoutRows();
+                render();
+            }, 50);
+        }
+
+        function relayoutRows() {
+            // The print view always shows everyone, in one column per generation.
+            const r = buildRows(model, isPrint() ? new Set() : collapsed);
+            if (isPrint()) {
+                r.gens = computeGenerations(model, r.rows);
+                r.genCount = Math.max(0, ...r.gens.values()) + 1;
+            }
+            const top = new Map();
+            let y = PAD_T;
+            for (const p of r.rows) {
+                top.set(p.key, y);
+                y += heights.get(p.key) + ROW_GAP;
+            }
+            layout = { ...r, top, worldH: Math.max(y - ROW_GAP + PAD_B, PAD_T + PAD_B) };
+            for (const el of $('cards').children) el.style.display = r.visible.has(el.dataset.key) ? '' : 'none';
+        }
+
+        function computeMinPpy() {
+            // Zooming out further than this would push children's birth points behind their parents' cards.
+            let need = 4;
+            for (const f of model.families) {
+                if (!f.children.length) continue;
+                const pc = Math.max(...f.parents.map(p => columns.get(p.key)));
+                const gap = Math.min(...f.children.map(c => c.birth.t)) - pc;
+                if (gap > 2) need = Math.max(need, (BUF + CARD_W + TRUNK_MARGIN) / gap);
+            }
+            return Math.min(need, 40);
+        }
+
+        // ---------- Connectors ----------
+        function computeLines() {
+            const vis = layout.visible;
+            const segsV = [];      // vertical segments (for hop detection)
+            const segsH = [];      // horizontal connectors
+            const singles = [];    // vertical single lines to draw
+            const doubles = [];
+            const controls = [];
+            const trunks = [];
+
+            const infos = [];
+            for (const f of model.families) {
+                if (!f.parents.every(p => vis.has(p.key))) continue;
+                let sx, sy;
+                if (f.parents.length === 2) {
+                    let [a, b] = f.parents.map(p => rects.get(p.key));
+                    if (a.y > b.y) [a, b] = [b, a];
+                    if (Math.abs(a.cx - b.cx) < 1) {
+                        doubles.push([[a.cx, a.b], [a.cx, b.y]]);
+                        segsV.push({ x: a.cx, y1: a.b, y2: b.y, fam: f.key });
+                        sx = a.cx;
+                        sy = b.y - ROW_GAP / 2;
+                    } else {
+                        const ym = b.y - ROW_GAP / 2;
+                        doubles.push([[a.cx, a.b], [a.cx, ym], [b.cx, ym], [b.cx, b.y]]);
+                        segsV.push({ x: a.cx, y1: a.b, y2: ym, fam: f.key });
+                        segsV.push({ x: b.cx, y1: ym, y2: b.y, fam: f.key });
+                        sx = b.cx;
+                        sy = ym;
+                    }
+                } else {
+                    const a = rects.get(f.parents[0].key);
+                    sx = a.cx;
+                    sy = a.b + ROW_GAP / 2;
+                    if (f.children.length) {
+                        singles.push({ x: sx, y1: a.b, y2: sy });
+                        segsV.push({ x: sx, y1: a.b, y2: sy, fam: f.key });
+                    }
+                }
+                const parentRight = Math.max(...f.parents.map(p => rects.get(p.key).r));
+                infos.push({ f, sx, sy, parentRight });
+            }
+            infos.sort((a, b) => a.sy - b.sy);
+
+            const visibleRects = [...rects.entries()];
+            for (const { f, sx, sy, parentRight } of infos) {
+                if (!f.children.length) continue;
+                const isCollapsed = !isPrint() && collapsed.has(f.key);
+                if (!isPrint()) controls.push({ x: sx, y: sy, f, collapsed: isCollapsed });
+                const kids = f.children.filter(c => vis.has(c.key));
+                if (isCollapsed || !kids.length) continue;
+
+                const kidKeys = new Set(kids.map(k => k.key));
+                const ys = kids.map(c => rects.get(c.key).cy);
+                const y1 = Math.min(sy, ...ys), y2 = Math.max(sy, ...ys);
+                const obstacles = visibleRects.filter(([k, r]) => !kidKeys.has(k) && r.b > y1 && r.y < y2).map(([, r]) => r);
+
+                // Slide the vertical trunk right until it clears cards and other trunks.
+                let x = parentRight + 16;
+                for (let iter = 0; iter < 500; iter++) {
+                    let moved = false;
+                    for (const o of obstacles) if (x > o.x - 8 && x < o.r + 8) { x = o.r + 16; moved = true; }
+                    for (const t of trunks) if (t.y1 < y2 && t.y2 > y1 && Math.abs(t.x - x) < 8) { x = t.x + 10; moved = true; }
+                    if (!moved) break;
+                }
+                const trunk = { x, y1, y2, fam: f.key };
+                trunks.push(trunk);
+                singles.push(trunk);
+                segsV.push(trunk);
+                if (Math.abs(x - sx) > 0.5) segsH.push({ x1: sx, x2: x, y: sy, fam: f.key });
+                for (const c of kids) {
+                    // Timeline views end the line at the birth date (start of the ribbon); print view at the card.
+                    const end = isPrint() ? rects.get(c.key).x : X(c.birth.t);
+                    segsH.push({ x1: x, x2: end, y: rects.get(c.key).cy, fam: f.key, dashed: f.adopted.has(c.key) });
+                }
+            }
+            return { segsV, segsH, singles, doubles, controls };
+        }
+
+        // Horizontal path with small semicircle "hops" where it crosses another family's vertical line.
+        function hopPath(h, segsV) {
+            const lo = Math.min(h.x1, h.x2), hi = Math.max(h.x1, h.x2);
+            const R = 5;
+            const xs = segsV
+                .filter(v => v.fam !== h.fam && v.x > lo + R + 1 && v.x < hi - R - 1 && h.y > v.y1 + 1 && h.y < v.y2 - 1)
+                .map(v => v.x)
+                .sort((a, b) => a - b)
+                .filter((x, i, arr) => i === 0 || x - arr[i - 1] > 2 * R + 2);
+            let d = `M${lo} ${h.y}`;
+            for (const x of xs) d += ` L${x - R} ${h.y} A${R} ${R} 0 0 1 ${x + R} ${h.y}`;
+            return d + ` L${hi} ${h.y}`;
+        }
+
+        // ---------- Axis ----------
+        function tickStep() {
+            for (const s of [1, 2, 5, 10, 20, 25, 50, 100]) if (s * ppy >= 56) return s;
+            return 100;
+        }
+
+        function axisHTML(offset, width) {
+            const step = tickStep();
+            const minor = step <= 2 ? 1 : step / 5;
+            const t0 = Math.max(startT, (-offset - PAD_L) / ppy + startT);
+            const t1 = Math.min(endT, (width - offset - PAD_L) / ppy + startT);
+            let html = '';
+            for (let y = Math.ceil(t0 / minor) * minor; y <= t1; y += minor) {
+                const x = X(y) + offset;
+                const major = y % step === 0;
+                html += `<div class="tick${major ? ' major' : ''}" style="left:${x}px"></div>`;
+                if (major && X(endT) - X(y) > 40) html += `<div class="lbl" style="left:${x}px">${y}</div>`;
+            }
+            html += `<div class="today" style="left:${X(endT) + offset}px">Today</div>`;
+            return html;
+        }
+
+        function renderAxes() {
+            if (!model || isPrint()) { $('axisTop').innerHTML = $('axisBottom').innerHTML = ''; return; }
+            const w = view.clientWidth;
+            $('axisTop').innerHTML = $('axisBottom').innerHTML = axisHTML(tx, w);
+        }
+
+        // ---------- Render ----------
+        function render() {
+            if (!model || !layout) return;
+            rects = new Map();
+            let maxRight = 0;
+            const print = isPrint();
+            const colX = g => PAD_L + g * (CARD_W + COL_GAP);
+            for (const p of layout.rows) {
+                const el = $('cards').querySelector(`[data-key="${CSS.escape(p.key)}"]`);
+                const x = print ? colX(layout.gens.get(p.key)) : X(columns.get(p.key)) + BUF;
+                const y = layout.top.get(p.key);
+                const h = heights.get(p.key);
+                el.style.left = x + 'px';
+                el.style.top = y + 'px';
+                rects.set(p.key, { x, y, r: x + CARD_W, b: y + h, cx: x + CARD_W / 2, cy: y + h / 2 });
+                maxRight = Math.max(maxRight, x + CARD_W);
+            }
+            worldW = print ? maxRight + PAD_L : Math.max(X(endT) + 80, maxRight + 60);
+            const worldH = layout.worldH;
+            world.style.width = worldW + 'px';
+            world.style.height = worldH + 'px';
+
+            // Grid
+            const grid = $('grid');
+            grid.setAttribute('width', worldW);
+            grid.setAttribute('height', worldH);
+            const step = tickStep();
+            let g = '';
+            if (!print) {
+                for (let y = Math.ceil(startT / step) * step; y <= endT; y += step) {
+                    g += `<line class="grid-line" x1="${X(y)}" x2="${X(y)}" y1="0" y2="${worldH}"/>`;
+                }
+                g += `<line class="today-line" x1="${X(endT)}" x2="${X(endT)}" y1="0" y2="${worldH}"/>`;
+            }
+            grid.innerHTML = g;
+
+            // Ribbons (timeline views) or generation columns (print view)
+            const now = endT;
+            let rb = '';
+            if (print) {
+                for (let gi = 0; gi < layout.genCount; gi++) {
+                    if (gi % 2 === 0) rb += `<div class="gen-band" style="left:${colX(gi) - 12}px;width:${CARD_W + 24}px;height:${worldH}px"></div>`;
+                    rb += `<div class="gen-head" style="left:${colX(gi)}px">Generation ${gi + 1}</div>`;
+                }
+            }
+            for (const p of print ? [] : layout.rows) {
+                const r = rects.get(p.key);
+                const x1 = X(p.birth.t);
+                const x2 = X(p.death ? p.death.t : now);
+                const w = Math.max(x2 - x1, 2);
+                const c = RIBBON_COLORS[p.gender];
+                const fadeIn = p.birth.approx ? Math.min(40, w / 3) : 0;
+                const fadeOut = p.death && p.death.approx ? Math.min(40, w / 3) : 0;
+                const bg = `linear-gradient(to right, transparent 0, ${c} ${fadeIn}px, ${c} calc(100% - ${fadeOut}px), ${fadeOut ? 'transparent' : c} 100%)`;
+                const clip = p.death ? '' : 'clip-path:polygon(0 0, calc(100% - 9px) 0, 100% 50%, calc(100% - 9px) 100%, 0 100%);';
+                rb += `<div class="ribbon" style="left:${x1}px;top:${r.cy - RIBBON_H / 2}px;width:${w}px;background:${bg};${clip}"></div>`;
+            }
+            $('ribbons').innerHTML = rb;
+
+            // Lines
+            const L = computeLines();
+            const svg = $('lines');
+            svg.setAttribute('width', worldW);
+            svg.setAttribute('height', worldH);
+            let s = '';
+            for (const pts of L.doubles) {
+                const d = 'M' + pts.map(p => p.join(' ')).join(' L');
+                s += `<path d="${d}" ${STROKE_DBL_OUTER}/><path d="${d}" ${STROKE_DBL_INNER}/>`;
+            }
+            for (const v of L.singles) s += `<path d="M${v.x} ${v.y1} V${v.y2}" ${STROKE_CONN}/>`;
+            for (const h of L.segsH) s += `<path d="${hopPath(h, L.segsV)}" ${STROKE_CONN}${h.dashed ? ' stroke-dasharray="5 4"' : ''}/>`;
+            svg.innerHTML = s;
+
+            // Collapse / expand controls
+            let c = '';
+            for (const ctl of L.controls) {
+                const key = escapeAttr(ctl.f.key);
+                c += `<button class="toggle no-export" data-fam="${key}" style="left:${ctl.x}px;top:${ctl.y}px" title="${ctl.collapsed ? 'Expand' : 'Collapse'} this family">${ctl.collapsed ? '+' : '−'}</button>`;
+                if (ctl.collapsed) {
+                    const n = layout.famHidden.get(ctl.f.key) || 0;
+                    const label = n ? `+${n} ${n === 1 ? 'person' : 'people'}` : 'collapsed';
+                    c += `<span class="collapsed-label" style="left:${ctl.x}px;top:${ctl.y}px">${label}</span>`;
+                }
+            }
+            $('controls').innerHTML = c;
+
+            clampPan();
+            applyTransform();
+        }
+
+        function escapeAttr(s) {
+            return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+        }
+
+        function clampPan() {
+            const vw = view.clientWidth, vh = view.clientHeight;
+            const sc = isPrint() ? printScale : 1;
+            const ww = worldW * sc, wh = (layout ? layout.worldH : 0) * sc;
+            tx = Math.min(60, Math.max(Math.min(0, vw - ww) - 60, tx));
+            ty = Math.min(60, Math.max(Math.min(0, vh - wh) - 60, ty));
+        }
+
+        function applyTransform() {
+            world.style.transform = `translate(${tx}px, ${ty}px)` + (isPrint() ? ` scale(${printScale})` : '');
+            renderAxes();
+        }
+
+        function zoomAt(mx, factor, my = view.clientHeight / 2) {
+            if (!model) return;
+            if (isPrint()) {
+                const wx = (mx - tx) / printScale, wy = (my - ty) / printScale;
+                printScale = Math.min(2, Math.max(0.2, printScale * factor));
+                tx = mx - wx * printScale;
+                ty = my - wy * printScale;
+                clampPan();
+                applyTransform();
+                return;
+            }
+            const t = (mx - tx - PAD_L) / ppy + startT;
+            ppy = Math.min(MAX_PPY, Math.max(minPpy, ppy * factor));
+            tx = mx - PAD_L - (t - startT) * ppy;
+            render();
+        }
+
+        function fit() {
+            if (!model) return;
+            if (isPrint()) {
+                render();   // computes worldW
+                printScale = Math.min(1, Math.max(0.2, (view.clientWidth - 40) / worldW));
+                tx = 0;
+                ty = 0;
+                clampPan();
+                applyTransform();
+                return;
+            }
+            const avail = view.clientWidth - PAD_L - BUF - CARD_W - 40;
+            ppy = Math.min(MAX_PPY, Math.max(minPpy, avail / Math.max(endT - startT, 1)));
+            tx = 0;
+            ty = 0;
+            render();
+        }
+
+        // ---------- Update from editor ----------
+        let errorLine = null;
+        function setStatus(cls, html) {
+            const el = $('status');
+            el.className = cls;
+            el.innerHTML = html;
+        }
+        function esc(s) {
+            return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        function update() {
+            const text = cm.getValue();
+            if (!storeSet(STORE_KEY, text)) {
+                // Still render; just warn below.
+            }
+            if (errorLine !== null) { cm.removeLineClass(errorLine, 'background', 'cm-error-line'); errorLine = null; }
+            let m;
+            try {
+                const doc = csvToDoc(text);
+                m = buildModel(doc);
+                m.warnings.unshift(...doc.warnings);
+            } catch (e) {
+                if (typeof e.line === 'number') {
+                    errorLine = cm.getLineHandle(e.line - 1);
+                    if (errorLine) cm.addLineClass(errorLine, 'background', 'cm-error-line');
+                }
+                const where = typeof e.line === 'number' ? ` (line ${e.line})` : '';
+                setStatus('error', `<b>Error${where}:</b> ${esc(e.message)}<br>Showing the last valid version of the tree.`);
+                return;
+            }
+            showColumn();
+            const first = !model;
+            model = m;
+            columns = computeColumns(m);
+            const births = [...m.people.values()].map(p => p.birth.t);
+            endT = todayT();
+            startT = births.length ? Math.floor(Math.min(...births)) - 4 : endT - 50;
+            buildCards();
+            minPpy = computeMinPpy();
+            if (ppy < minPpy) ppy = minPpy;
+            relayoutRows();
+            $('empty').hidden = m.people.size > 0;
+            if (first) fit(); else render();
+
+            const counts = `${m.people.size} people · ${m.families.length} families`;
+            let saveNote = '';
+            try { if (localStorage.getItem(STORE_KEY) !== text) saveNote = '<br>Too large to auto-save in this browser. Use <b>Save</b> to keep your changes.'; } catch { saveNote = '<br>Auto-save is unavailable in this browser. Use <b>Save</b> to keep your changes.'; }
+            if (m.warnings.length) {
+                setStatus('warn', `${counts} · ${m.warnings.length} warning${m.warnings.length > 1 ? 's' : ''}${saveNote}<ul>${m.warnings.map(w => `<li>${esc(w)}</li>`).join('')}</ul>`);
+            } else {
+                setStatus(saveNote ? 'warn' : 'ok', `✓ ${counts}${saveNote}`);
+            }
+        }
+
+        // ---------- Photos ----------
+        function fileToPhoto(file) {
+            return new Promise((resolve, reject) => {
+                const url = URL.createObjectURL(file);
+                const img = new Image();
+                img.onload = () => {
+                    const w = img.naturalWidth, h = img.naturalHeight;
+                    const s = Math.min(w, h);
+                    const size = Math.min(256, s);
+                    const canvas = document.createElement('canvas');
+                    canvas.width = canvas.height = size;
+                    // Square crop, biased towards the top of portrait photos where faces usually are.
+                    canvas.getContext('2d').drawImage(img, (w - s) / 2, (h - s) * 0.3, s, s, 0, 0, size, size);
+                    URL.revokeObjectURL(url);
+                    resolve(canvas.toDataURL('image/jpeg', 0.85));
+                };
+                img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Could not read that image.')); };
+                img.src = url;
+            });
+        }
+
+        let photoSaveWarned = false;
+        async function setPhoto(key, data) {
+            if (data) photos.set(key, data); else photos.delete(key);
+            update();
+            try {
+                if (data) await photoStore.put(key, data); else await photoStore.del(key);
+            } catch {
+                if (!photoSaveWarned) alert('Photos cannot be stored in this browser, so they will be lost when the page closes. Use "Save with photos" to keep them.');
+                photoSaveWarned = true;
+            }
+        }
+
+        async function replacePhotos(map) {
+            photos = map;
+            try { await photoStore.replaceAll(map); } catch { }
+        }
+
+        async function handlePhotoFile(key, file) {
+            if (!file || !file.type.startsWith('image/')) return;
+            try { setPhoto(key, await fileToPhoto(file)); } catch (e) { alert(e.message); }
+        }
+
+        // ---------- Footer note ----------
+        const FOOTER_KEY = 'familytree.footer';
+        $('footerNote').value = loadJSON(FOOTER_KEY, '');
+        $('footerNote').addEventListener('input', e => storeSet(FOOTER_KEY, JSON.stringify(e.target.value)));
+
+        // Footer with the note on the left and the date on the right; null when no note is set.
+        function makeFooter(verb) {
+            const note = $('footerNote').value.trim();
+            if (!note) return null;
+            const d = new Date();
+            const el = document.createElement('div');
+            el.className = 'page-footer';
+            const left = document.createElement('span');
+            left.textContent = note;
+            const right = document.createElement('span');
+            right.textContent = `${verb} ${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+            el.append(left, right);
+            return el;
+        }
+
+        // ---------- Export ----------
+        async function exportImage(kind) {
+            if (!model || !model.people.size) return;
+            const axes = !isPrint();
+            const w = Math.ceil(worldW);
+            const stage = document.createElement('div');
+            stage.className = 'export-stage';
+            stage.style.width = w + 'px';
+            const mkAxis = cls => {
+                const a = document.createElement('div');
+                a.className = `axis ${cls}`;
+                a.style.width = w + 'px';
+                a.innerHTML = axisHTML(0, w);
+                return a;
+            };
+            const clone = world.cloneNode(true);
+            clone.removeAttribute('id');
+            clone.style.position = 'relative';
+            clone.style.transform = 'none';
+            if (axes) stage.append(mkAxis('top'), clone, mkAxis('bottom'));
+            else stage.append(clone);
+            if (!axes) stage.style.background = '#fff';
+            const footer = makeFooter('Exported');
+            if (footer) stage.append(footer);
+            document.body.appendChild(stage);
+            const h = Math.ceil(stage.getBoundingClientRect().height);
+            document.body.style.cursor = 'progress';
+            try {
+                const ratio = Math.max(0.5, Math.min(2, 16000 / Math.max(w, h), Math.sqrt(120e6 / (w * h))));
+                const opts = {
+                    backgroundColor: axes ? getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#ffffff' : '#ffffff',
+                    pixelRatio: ratio,
+                    width: w,
+                    height: h,
+                    style: { position: 'static', left: '0', top: '0' },
+                    imagePlaceholder: SILHOUETTE_URI,
+                    skipFonts: true,
+                    filter: n => !(n.classList && n.classList.contains('no-export')),
+                };
+                if (kind === 'png') {
+                    download(await htmlToImage.toPng(stage, opts), 'family-tree.png');
+                } else {
+                    const canvas = await htmlToImage.toCanvas(stage, opts);
+                    const { jsPDF } = window.jspdf;
+                    const k = Math.min(0.75, 14000 / Math.max(w, h));   // px -> pt, within PDF page size limits
+                    const pdf = new jsPDF({ orientation: w > h ? 'landscape' : 'portrait', unit: 'pt', format: [w * k, h * k] });
+                    pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, w * k, h * k);
+                    pdf.save('family-tree.pdf');
+                }
+            } catch (e) {
+                alert('Export failed: ' + (e && e.message ? e.message : e));
+            } finally {
+                stage.remove();
+                document.body.style.cursor = '';
+            }
+        }
+
+        function download(href, name) {
+            const a = document.createElement('a');
+            a.href = href;
+            a.download = name;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+        }
+
+        // ---------- Editor ----------
+        // Colours each CSV column differently; the header row is bold and # lines are comments.
+        CodeMirror.defineMode('csvcols', () => ({
+            startState: () => ({ col: 0, inQuote: false, headerDone: false, inHeader: false }),
+            copyState: st => ({ ...st }),
+            token(stream, st) {
+                if (stream.sol() && !st.inQuote) {
+                    st.col = 0;
+                    if (stream.match(/^\s*#/, false)) { stream.skipToEnd(); return 'comment'; }
+                    st.inHeader = !st.headerDone;
+                    st.headerDone = true;
+                }
+                const style = 'csv-c' + (st.col % 6) + (st.inHeader ? ' strong' : '');
+                if (st.inQuote) {
+                    while (!stream.eol()) {
+                        if (stream.next() === '"') {
+                            if (stream.peek() === '"') stream.next();
+                            else { st.inQuote = false; break; }
+                        }
+                    }
+                    return style;
+                }
+                const ch = stream.peek();
+                if (ch === csvInfo.delim) { stream.next(); st.col++; return 'csv-sep'; }
+                if (ch === '"') { stream.next(); st.inQuote = true; return style; }
+                stream.eatWhile(c => c !== csvInfo.delim && c !== '"');
+                return style;
+            },
+        }));
+        const cm = CodeMirror($('editor'), {
+            value: '',
+            mode: 'csvcols',
+            lineNumbers: true,
+            tabSize: 4,
+        });
+
+        // Shows which column the cursor is in (only counts within the current line).
+        function showColumn() {
+            const { line, ch } = cm.getCursor();
+            const text = cm.getLine(line).slice(0, ch);
+            if (text.trimStart().startsWith('#')) { $('colInfo').textContent = ''; return; }
+            let col = 0, inQ = false;
+            for (const c of text) {
+                if (c === '"') inQ = !inQ;
+                else if (c === csvInfo.delim && !inQ) col++;
+            }
+            const name = csvInfo.cols[col];
+            $('colInfo').textContent = name ? `Column: ${name} (${col + 1} of ${csvInfo.cols.length})` : `Column ${col + 1}`;
+        }
+        cm.on('cursorActivity', showColumn);
+        let updateTimer = 0;
+        cm.on('change', () => {
+            clearTimeout(updateTimer);
+            updateTimer = setTimeout(update, 300);
+        });
+
+        let jumpLine = null;
+        function jumpToPerson(key) {
+            const pane = $('editorPane');
+            if (pane.classList.contains('hidden')) toggleEditor();
+            const idCol = Math.max(0, csvInfo.cols.indexOf('id'));
+            for (let i = 0; i < cm.lineCount(); i++) {
+                const text = cm.getLine(i);
+                if (text.trimStart().startsWith('#')) continue;
+                const field = (text.split(csvInfo.delim)[idCol] || '').trim().replace(/^"|"$/g, '');
+                if (field === key) {
+                    if (jumpLine) cm.removeLineClass(jumpLine, 'background', 'cm-jump-line');
+                    jumpLine = cm.getLineHandle(i);
+                    cm.addLineClass(jumpLine, 'background', 'cm-jump-line');
+                    cm.setCursor({ line: i, ch: cm.getLine(i).length });
+                    cm.scrollIntoView({ line: i, ch: 0 }, 120);
+                    cm.focus();
+                    return;
+                }
+            }
+        }
+
+        // ---------- Interactions ----------
+        let drag = null, pinch = null;
+        const pointers = new Map();
+        let renderQueued = false;
+        const scheduleRender = () => {
+            if (renderQueued) return;
+            renderQueued = true;
+            requestAnimationFrame(() => { renderQueued = false; render(); });
+        };
+        const pinchCenter = () => {
+            const [a, b] = [...pointers.values()];
+            const rect = view.getBoundingClientRect();
+            return { x: (a.x + b.x) / 2 - rect.left, y: (a.y + b.y) / 2 - rect.top, dist: Math.hypot(a.x - b.x, a.y - b.y) || 1 };
+        };
+        view.addEventListener('pointerdown', e => {
+            if (e.button !== 0 || e.target.closest('button, a, .photo')) return;
+            pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+            if (pointers.size === 2 && model) {
+                // Two fingers: pinch zooms the timeline around the point between them.
+                const c = pinchCenter();
+                pinch = { dist: c.dist, ppy, t: (c.x - tx - PAD_L) / ppy + startT, y: c.y, ty, scale: printScale, wx: (c.x - tx) / printScale, wy: (c.y - ty) / printScale };
+                drag = null;
+            } else if (pointers.size === 1) {
+                drag = { x: e.clientX, y: e.clientY, tx, ty, moved: false };
+            }
+        });
+        view.addEventListener('pointermove', e => {
+            if (!pointers.has(e.pointerId)) return;
+            pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+            if (pinch && pointers.size >= 2) {
+                const c = pinchCenter();
+                if (isPrint()) {
+                    printScale = Math.min(2, Math.max(0.2, pinch.scale * c.dist / pinch.dist));
+                    tx = c.x - pinch.wx * printScale;
+                    ty = c.y - pinch.wy * printScale;
+                    applyTransform();
+                    return;
+                }
+                ppy = Math.min(MAX_PPY, Math.max(minPpy, pinch.ppy * c.dist / pinch.dist));
+                tx = c.x - PAD_L - (pinch.t - startT) * ppy;
+                ty = pinch.ty + (c.y - pinch.y);
+                scheduleRender();
+                return;
+            }
+            if (!drag) return;
+            const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+            if (!drag.moved && Math.abs(dx) + Math.abs(dy) > 3) {
+                drag.moved = true;
+                try { view.setPointerCapture(e.pointerId); } catch { }
+                view.classList.add('dragging');
+            }
+            if (!drag.moved) return;
+            tx = drag.tx + dx;
+            ty = drag.ty + dy;
+            clampPan();
+            applyTransform();
+        });
+        const endDrag = e => {
+            pointers.delete(e.pointerId);
+            if (pinch && pointers.size === 1) {
+                // One finger lifted after a pinch: keep panning with the other.
+                const [p] = pointers.values();
+                drag = { x: p.x, y: p.y, tx, ty, moved: true };
+            } else if (!pointers.size) {
+                drag = null;
+                view.classList.remove('dragging');
+            }
+            if (pointers.size < 2) pinch = null;
+        };
+        view.addEventListener('pointerup', endDrag);
+        view.addEventListener('pointercancel', endDrag);
+
+        view.addEventListener('wheel', e => {
+            if (!model) return;
+            e.preventDefault();
+            const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? view.clientHeight : 1;
+            if (e.ctrlKey || e.metaKey) {
+                const rect = view.getBoundingClientRect();
+                zoomAt(e.clientX - rect.left, Math.exp(-e.deltaY * unit * 0.0025), e.clientY - rect.top);
+            } else {
+                tx -= (e.shiftKey ? e.deltaY : e.deltaX) * unit;
+                ty -= (e.shiftKey ? 0 : e.deltaY) * unit;
+                clampPan();
+                applyTransform();
+            }
+        }, { passive: false });
+
+        $('controls').addEventListener('click', e => {
+            const b = e.target.closest('.toggle');
+            if (!b) return;
+            const key = b.dataset.fam;
+            if (collapsed.has(key)) collapsed.delete(key); else collapsed.add(key);
+            storeSet(COLLAPSE_KEY, JSON.stringify([...collapsed]));
+            relayoutRows();
+            render();
+        });
+
+        const cardsLayer = $('cards');
+        cardsLayer.addEventListener('click', e => {
+            const rm = e.target.closest('.photo-remove');
+            if (rm) { setPhoto(rm.dataset.remove, null); return; }
+            const photo = e.target.closest('.photo');
+            if (photo) {
+                photoTarget = photo.closest('.card').dataset.key;
+                $('filePhoto').value = '';
+                $('filePhoto').click();
+            }
+        });
+        cardsLayer.addEventListener('dblclick', e => {
+            const card = e.target.closest('.card');
+            if (card && !e.target.closest('.photo, .photo-remove')) jumpToPerson(card.dataset.key);
+        });
+        cardsLayer.addEventListener('dragover', e => {
+            const card = e.target.closest('.card');
+            if (!card || !e.dataTransfer.types.includes('Files')) return;
+            e.preventDefault();
+            cardsLayer.querySelectorAll('.card.drop').forEach(c => c !== card && c.classList.remove('drop'));
+            card.classList.add('drop');
+        });
+        cardsLayer.addEventListener('dragleave', e => {
+            const card = e.target.closest('.card');
+            if (card && !card.contains(e.relatedTarget)) card.classList.remove('drop');
+        });
+        cardsLayer.addEventListener('drop', e => {
+            const card = e.target.closest('.card');
+            if (!card) return;
+            e.preventDefault();
+            card.classList.remove('drop');
+            handlePhotoFile(card.dataset.key, e.dataTransfer.files[0]);
+        });
+        $('filePhoto').addEventListener('change', e => {
+            if (photoTarget) handlePhotoFile(photoTarget, e.target.files[0]);
+        });
+
+        $('btnOpen').onclick = () => { $('fileOpen').value = ''; $('fileOpen').click(); };
+        $('fileOpen').addEventListener('change', async e => {
+            const f = e.target.files[0];
+            if (!f) return;
+            try { await openFile(f); } catch (err) { alert('Could not open that file: ' + err.message); }
+        });
+
+        function setEditorText(text, fileName) {
+            currentFileName = fileName.replace(/\.[^.]*$/, '') + '.csv';
+            cm.setValue(text);
+            cm.clearHistory();
+            clearTimeout(updateTimer);
+            update();
+            fit();
+        }
+
+        async function openFile(f) {
+            if (/\.zip$/i.test(f.name)) {
+                // A .zip from "Save with photos": the .csv plus photos/<id>.<ext>. Replaces the photos in this browser.
+                const zip = await JSZip.loadAsync(f);
+                const entries = Object.values(zip.files).filter(z => !z.dir && !z.name.includes('__MACOSX'));
+                const csvFile = entries.find(z => /\.(csv|tsv|txt)$/i.test(z.name));
+                if (!csvFile) throw new Error('there is no .csv file inside the zip.');
+                const mimes = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp', gif: 'image/gif' };
+                const map = new Map();
+                for (const z of entries) {
+                    const m = /(?:^|\/)photos\/([^/]+)\.(jpe?g|png|webp|gif)$/i.exec(z.name);
+                    if (!m) continue;
+                    let key = m[1];
+                    try { key = decodeURIComponent(key); } catch { }
+                    map.set(key, `data:${mimes[m[2].toLowerCase()]};base64,` + await z.async('base64'));
+                }
+                await replacePhotos(map);
+                setEditorText(await csvFile.async('string'), csvFile.name.split('/').pop());
+            } else if (/\.ya?ml$/i.test(f.name)) {
+                // Config from the earlier YAML version: convert it, keeping any embedded photos.
+                const r = yamlToCsv(jsyaml.load(await f.text(), { schema: jsyaml.CORE_SCHEMA }));
+                for (const [k, v] of r.photos) { photos.set(k, v); photoStore.put(k, v).catch(() => { }); }
+                setEditorText(r.text, f.name);
+            } else {
+                setEditorText(await f.text(), f.name);
+            }
+        }
+
+        $('btnSave').onclick = () => {
+            const url = URL.createObjectURL(new Blob([cm.getValue()], { type: 'text/csv' }));
+            download(url, currentFileName);
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        };
+        $('btnSaveZip').onclick = async () => {
+            const zip = new JSZip();
+            zip.file(currentFileName, cm.getValue());
+            const exts = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif' };
+            for (const [k, v] of photos) {
+                const m = /^data:([^;]+);base64,(.*)$/.exec(v);
+                if (m) zip.file(`photos/${encodeURIComponent(k)}.${exts[m[1]] || 'jpg'}`, m[2], { base64: true });
+            }
+            const url = URL.createObjectURL(await zip.generateAsync({ type: 'blob' }));
+            download(url, currentFileName.replace(/\.csv$/i, '') + '.zip');
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        };
+        $('btnReset').onclick = () => {
+            if (!confirm('Replace the editor contents with the sample tree? Anything you have not saved will be lost.')) return;
+            setEditorText(SAMPLE, 'family-tree.csv');
+        };
+        $('btnZoomIn').onclick = () => zoomAt(view.clientWidth / 2, 1.25);
+        $('btnZoomOut').onclick = () => zoomAt(view.clientWidth / 2, 0.8);
+        $('btnFit').onclick = fit;
+        $('viewMode').onchange = e => {
+            viewMode = e.target.value;
+            storeSet(DENSITY_KEY, JSON.stringify(viewMode));
+            applyViewMode();
+            if (!model) return;
+            buildCards();
+            minPpy = computeMinPpy();
+            relayoutRows();
+            fit();
+        };
+        $('btnPng').onclick = () => exportImage('png');
+        $('btnPdf').onclick = () => exportImage('pdf');
+        $('btnPrint').onclick = () => window.print();
+
+        // Printing: scale the tree to the page width; wide trees print in landscape.
+        let printPageStyle = null;
+        window.addEventListener('beforeprint', () => {
+            if (!model) return;
+            const landscape = worldW > 760;
+            const pageW = landscape ? 1020 : 700;   // printable width in CSS px (A4/Letter, 10mm margins)
+            document.documentElement.style.setProperty('--print-zoom', Math.min(1, pageW / worldW));
+            const footer = makeFooter('Printed');
+            $('printFooter').replaceChildren(...(footer ? footer.childNodes : []));
+            printPageStyle = document.createElement('style');
+            printPageStyle.textContent = `@page { size: ${landscape ? 'landscape' : 'portrait'}; margin: 10mm; }`;
+            document.head.appendChild(printPageStyle);
+        });
+        window.addEventListener('afterprint', () => {
+            if (printPageStyle) printPageStyle.remove();
+            printPageStyle = null;
+        });
+
+        function toggleEditor() {
+            const hide = !$('editorPane').classList.contains('hidden');
+            $('editorPane').classList.toggle('hidden', hide);
+            $('divider').classList.toggle('hidden', hide);
+            $('btnToggleEditor').textContent = hide ? 'Show editor' : 'Hide editor';
+            if (!hide) cm.refresh();
+        }
+        $('btnToggleEditor').onclick = toggleEditor;
+        if (window.innerWidth < 900) toggleEditor();
+
+        // Resizable editor pane
+        $('divider').addEventListener('pointerdown', e => {
+            const d = $('divider');
+            d.setPointerCapture(e.pointerId);
+            const move = ev => {
+                $('editorPane').style.width = Math.max(240, Math.min(window.innerWidth - 300, ev.clientX)) + 'px';
+            };
+            const up = () => {
+                d.removeEventListener('pointermove', move);
+                d.removeEventListener('pointerup', up);
+                cm.refresh();
+            };
+            d.addEventListener('pointermove', move);
+            d.addEventListener('pointerup', up);
+        });
+
+        new ResizeObserver(() => { if (model) { clampPan(); applyTransform(); } }).observe(view);
+
+        (async () => {
+            try { photos = await photoStore.loadAll(); } catch { }
+            let text = null;
+            try { text = localStorage.getItem(STORE_KEY); } catch { }
+            if (text == null) {
+                // One-time migration from the earlier YAML version of this page.
+                let old = null;
+                try { old = localStorage.getItem(OLD_YAML_KEY); } catch { }
+                if (old) {
+                    try {
+                        const r = yamlToCsv(jsyaml.load(old, { schema: jsyaml.CORE_SCHEMA }));
+                        text = r.text;
+                        for (const [k, v] of r.photos) { photos.set(k, v); photoStore.put(k, v).catch(() => { }); }
+                    } catch { }
+                }
+            }
+            cm.setValue(text ?? SAMPLE);
+            cm.clearHistory();
+            clearTimeout(updateTimer);
+            update();
+        })();
+    </script>
+</body>
+
+</html>
