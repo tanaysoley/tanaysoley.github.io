@@ -395,7 +395,8 @@ export class Game {
   applyHoming(b, dt) {
     const H = HOMING;
     let ax = 0, ay = 0;
-    for (const p of this.pogs) {
+    // Pulled towards POGs (except ones this bullet already pierced) and power crystals.
+    for (const p of [...this.pogs, ...this.crystals]) {
       if (p.dead || b.hit.has(p)) continue;
       const dx = p.x - b.x, dy = p.y - b.y;
       const d = Math.hypot(dx, dy);
