@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Sur · Pitch Trainer</title>
+  <meta name="description" content="Check your pitch while singing: see which swar you are on, or practise alankars in a raag.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Noto+Sans+Devanagari:wght@500;600;700&display=swap">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <header class="top">
+      <a class="back" href="/experiments/" aria-label="Back to experiments">←</a>
+      <div class="brand"><span class="brand-dev">सुर</span><span class="brand-rom">Sur</span></div>
+      <nav class="tabs" role="tablist" aria-label="Mode">
+        <button role="tab" id="tab-tuner" aria-selected="true" data-view="tuner">Tuner</button>
+        <button role="tab" id="tab-practice" aria-selected="false" data-view="practice">Practice</button>
+        <button role="tab" id="tab-game" aria-selected="false" data-view="game">Sur Samraat</button>
+        <button role="tab" class="soon" disabled title="Sing along: coming later">Sing along <small>soon</small></button>
+      </nav>
+      <div class="top-actions">
+        <button id="scriptBtn" class="chip" aria-label="Switch between Devanagari and Roman letters">अ / A</button>
+        <button id="settingsBtn" class="icon-btn" aria-label="Settings">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M19.4 13a7.6 7.6 0 0 0 0-2l2-1.6-2-3.4-2.4 1a7.4 7.4 0 0 0-1.7-1L15 3.5h-4l-.4 2.5a7.4 7.4 0 0 0-1.7 1l-2.4-1-2 3.4L6.6 11a7.6 7.6 0 0 0 0 2l-2 1.6 2 3.4 2.4-1c.5.4 1.1.7 1.7 1l.4 2.5h4l.4-2.5c.6-.3 1.2-.6 1.7-1l2.4 1 2-3.4-2.1-1.6ZM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7Z" transform="translate(-1 0)"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <button id="contextBar" class="context-bar" aria-label="Open settings"></button>
+
+    <main>
+      <!-- Mode 1: tuner -->
+      <section id="view-tuner" class="view" role="tabpanel" aria-labelledby="tab-tuner">
+        <div class="readout">
+          <div id="tSwar" class="big-swar silent"></div>
+          <div class="readout-meta">
+            <span id="tCents" class="cents">—</span>
+            <span id="tHz" class="hz"></span>
+          </div>
+          <p id="tStatus" class="status">Sing a note</p>
+        </div>
+        <div class="scale-wrap">
+          <canvas id="tScale" aria-label="Frequency scale with every swar marked and a pointer for your voice"></canvas>
+        </div>
+      </section>
+
+      <!-- Mode 2: practice -->
+      <section id="view-practice" class="view" role="tabpanel" aria-labelledby="tab-practice" hidden>
+        <div id="pSetup" class="panel">
+          <div class="setup-scale">
+            <div>
+              <div class="eyebrow">Scale</div>
+              <div id="pScaleName" class="scale-name"></div>
+            </div>
+            <button id="pChangeScale" class="link-btn">Change</button>
+          </div>
+          <div class="scale-lines">
+            <div><span class="eyebrow">Aroha</span> <span id="pAroha" class="swar-line"></span></div>
+            <div><span class="eyebrow">Avaroha</span> <span id="pAvaroha" class="swar-line"></span></div>
+          </div>
+          <div class="eyebrow pattern-head">Pattern</div>
+          <div id="pPatterns" class="patterns" role="radiogroup" aria-label="Practice pattern"></div>
+          <button id="pStart" class="primary">Start practice</button>
+        </div>
+
+        <div id="pRun" class="panel run" hidden>
+          <div class="run-head">
+            <div>
+              <div id="pRunName" class="run-name"></div>
+              <div id="pRunDesc" class="run-desc"></div>
+            </div>
+            <div id="pCount" class="count"></div>
+          </div>
+          <div id="pStrip" class="strip" aria-label="Sequence"></div>
+          <div class="target">
+            <svg class="ring" viewBox="0 0 120 120" aria-hidden="true">
+              <circle class="ring-bg" cx="60" cy="60" r="54"/>
+              <circle id="pRing" class="ring-fg" cx="60" cy="60" r="54"/>
+            </svg>
+            <div id="pTarget" class="target-swar"></div>
+            <button id="pPlayTarget" class="play-target" aria-label="Play this swar">▶</button>
+          </div>
+          <canvas id="pMeter" aria-label="How far your voice is from the target swar"></canvas>
+          <p id="pStatus" class="status">Sing the swar and hold it</p>
+          <div class="run-actions">
+            <button id="pSkip" class="ghost">Skip swar</button>
+            <button id="pStop" class="ghost">End session</button>
+          </div>
+        </div>
+
+        <div id="pSummary" class="panel" hidden>
+          <div class="eyebrow">Session summary</div>
+          <div>
+            <h2 id="sTitle" class="summary-title"></h2>
+            <div id="sSub" class="run-desc"></div>
+          </div>
+          <div id="sStats" class="stats"></div>
+          <div class="eyebrow">By swar</div>
+          <p class="hint">Offset is your average distance from the swar while you were near it. Plus is sharp (too high), minus is flat (too low).</p>
+          <div id="sTable" class="table"></div>
+          <div class="run-actions">
+            <button id="sAgain" class="primary">Practise again</button>
+            <button id="sBack" class="ghost">Change pattern</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Game: Sur Samraat -->
+      <section id="view-game" class="view" role="tabpanel" aria-labelledby="tab-game" hidden>
+        <div class="sam-wrap">
+          <canvas id="samCanvas" aria-label="Sur Samraat: run across the bridges by singing each swar"></canvas>
+
+          <div id="samHud" class="sam-hud" hidden>
+            <div class="sam-bar">
+              <div class="sam-health" aria-label="Health"><div id="samHealth"></div></div>
+              <span id="samAcc" class="sam-acc" title="Time on the bridge">—</span>
+              <button id="samPause" class="icon-btn small" aria-label="Pause">❚❚</button>
+            </div>
+            <div class="sam-progress"><div id="samProgress"></div></div>
+            <div class="sam-swars">
+              <div><span class="eyebrow">Now</span><span id="samNow" class="sam-now"></span></div>
+              <div><span class="eyebrow">Next</span><span id="samNext" class="sam-next"></span></div>
+            </div>
+            <div id="samMsg" class="sam-msg" aria-live="polite"></div>
+          </div>
+
+          <div id="samMenu" class="sam-screen"></div>
+
+          <div id="samPaused" class="sam-screen center" hidden>
+            <div class="sam-card">
+              <h2>Paused</h2>
+              <div class="run-actions">
+                <button id="samResume" class="primary">Resume</button>
+                <button id="samQuit" class="ghost">Songs</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="samResult" class="sam-screen center" hidden>
+            <div class="sam-card">
+              <div class="res-body"></div>
+              <div class="run-actions">
+                <button id="samRetry" class="primary">Sing again</button>
+                <button id="samBack" class="ghost">Songs</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="dock">
+      <div class="dock-row">
+        <button id="tanpuraBtn" class="chip toggle" aria-pressed="false">
+          <span class="dot"></span>Tanpura
+        </button>
+        <label class="vol"><span class="sr-only">Tanpura volume</span>
+          <input id="tanpuraVol" type="range" min="0" max="1" step="0.05" value="0.5">
+        </label>
+        <div class="oct-switch" role="group" aria-label="Octave for the note buttons">
+          <button id="octDown" class="icon-btn small" aria-label="Lower octave">‹</button>
+          <span id="octLabel"></span>
+          <button id="octUp" class="icon-btn small" aria-label="Higher octave">›</button>
+        </div>
+      </div>
+      <div id="noteBtns" class="note-btns" aria-label="Play a swar"></div>
+    </footer>
+  </div>
+
+  <!-- Microphone permission gate -->
+  <div id="micGate" class="overlay">
+    <div class="gate">
+      <div class="gate-dev">सुर</div>
+      <h1>Sur</h1>
+      <p>Sur listens to you sing and shows how close you are to each swar. It needs your microphone. Nothing is recorded or sent anywhere.</p>
+      <p class="hint">Use headphones if you turn on the tanpura, so the mic hears only you.</p>
+      <button id="micStart" class="primary">Start listening</button>
+      <p id="micError" class="error" hidden></p>
+    </div>
+  </div>
+
+  <!-- Settings -->
+  <dialog id="settings">
+    <form method="dialog" class="settings">
+      <div class="settings-head">
+        <h2>Settings</h2>
+        <button class="icon-btn" value="close" aria-label="Close">✕</button>
+      </div>
+
+      <fieldset>
+        <legend>Sa (your tonic)</legend>
+        <div class="row">
+          <select id="setSaName" aria-label="Sa note"></select>
+          <select id="setSaOct" aria-label="Sa octave">
+            <option value="2">Octave 2</option>
+            <option value="3">Octave 3</option>
+            <option value="4">Octave 4</option>
+          </select>
+          <span id="setSaHz" class="muted"></span>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Swars to use</legend>
+        <div class="seg" role="radiogroup">
+          <label><input type="radio" name="scaleKind" value="all"><span>All 12</span></label>
+          <label><input type="radio" name="scaleKind" value="thaat"><span>Thaat</span></label>
+          <label><input type="radio" name="scaleKind" value="raag"><span>Raag</span></label>
+        </div>
+        <select id="setThaat" aria-label="Thaat"></select>
+        <select id="setRaag" aria-label="Raag"></select>
+        <div id="setScalePreview" class="swar-line preview"></div>
+        <p class="hint">A <b>thaat</b> is a parent scale: just seven swars, the same going up and down. A <b>raag</b> is a melody built on a thaat, with its own way up (aroha) and down (avaroha); it can drop swars or use different ones in each direction.</p>
+      </fieldset>
+
+      <fieldset>
+        <legend>Accuracy</legend>
+        <label class="slider">
+          <span>Steep drop starts at <b id="setTolVal"></b></span>
+          <input id="setTol" type="range" min="2" max="30" step="1">
+        </label>
+        <div id="setTolCurve" class="tol-curve" aria-hidden="true"></div>
+        <p class="hint">Exactly on the swar is deep green. Halfway to the next swar is deep red. In practice mode, you count as on the swar while within this distance.</p>
+        <label class="slider">
+          <span>Hold the swar for <b id="setHoldVal"></b> (practice)</span>
+          <input id="setHold" type="range" min="0.3" max="3" step="0.1">
+        </label>
+        <label class="slider">
+          <span>Ignore sounds quieter than <b id="setGateVal"></b></span>
+          <input id="setGate" type="range" min="-75" max="-25" step="1">
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Letters</legend>
+        <div class="seg" role="radiogroup">
+          <label><input type="radio" name="script" value="dev"><span>देवनागरी</span></label>
+          <label><input type="radio" name="script" value="rom"><span>Roman</span></label>
+        </div>
+      </fieldset>
+    </form>
+  </dialog>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
