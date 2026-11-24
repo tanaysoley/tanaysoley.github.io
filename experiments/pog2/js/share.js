@@ -5,8 +5,75 @@ const H = 1350;
 const FONT = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
 const DISPLAY_URL = GAME_URL.replace(/^https?:\/\//, '').replace(/\/$/, '');
 
+const LOGO_POG_FONT = '"Luckiest Guy", "Arial Black", Impact, sans-serif';
+const LOGO_2_FONT = '"Bungee", "Arial Black", Impact, sans-serif';
+
+// Make sure the logo's web fonts are ready before drawing them on a canvas (give up after 2s).
+function loadLogoFonts() {
+  if (!document.fonts || !document.fonts.load) return Promise.resolve();
+  const load = Promise.all([
+    document.fonts.load(`96px ${LOGO_POG_FONT}`),
+    document.fonts.load(`96px ${LOGO_2_FONT}`),
+  ]).catch(() => {});
+  return Promise.race([load, new Promise((r) => setTimeout(r, 2000))]);
+}
+
+// "POG" in a pink → orange → green gradient, then a bigger, tilted white "2" in a different font.
+// Mirrors the .logo styles in style.css.
+function drawLogo(ctx, cx, baseline, size) {
+  const outline = '#1a1033';
+  const pogFont = `${size}px ${LOGO_POG_FONT}`;
+  const twoSize = size * 1.4;
+  const twoFont = `${twoSize}px ${LOGO_2_FONT}`;
+  ctx.save();
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  ctx.lineJoin = 'round';
+  ctx.font = pogFont;
+  if ('letterSpacing' in ctx) ctx.letterSpacing = `${Math.round(size * 0.04)}px`;
+  const wPog = ctx.measureText('POG').width;
+  ctx.font = twoFont;
+  const w2 = ctx.measureText('2').width;
+  const gap = size * 0.14;
+  const x0 = cx - (wPog + gap + w2) / 2;
+
+  // POG: drop shadow, outline, gradient fill
+  ctx.font = pogFont;
+  ctx.fillStyle = outline;
+  ctx.fillText('POG', x0, baseline + size * 0.08);
+  ctx.lineWidth = size * 0.1;
+  ctx.strokeStyle = outline;
+  ctx.strokeText('POG', x0, baseline);
+  const g = ctx.createLinearGradient(x0, 0, x0 + wPog, 0);
+  g.addColorStop(0, POGS.pink.color);
+  g.addColorStop(0.18, POGS.pink.color);
+  g.addColorStop(0.5, POGS.orange.color);
+  g.addColorStop(0.82, POGS.green.color);
+  g.addColorStop(1, POGS.green.color);
+  ctx.fillStyle = g;
+  ctx.fillText('POG', x0, baseline);
+
+  // 2: tilted, white, bigger, with a soft glow
+  if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+  ctx.translate(x0 + wPog + gap + w2 / 2, baseline - size * 0.3);
+  ctx.rotate(-0.14);
+  ctx.font = twoFont;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = outline;
+  ctx.fillText('2', 0, size * 0.08);
+  ctx.lineWidth = size * 0.1;
+  ctx.strokeText('2', 0, 0);
+  ctx.shadowColor = 'rgba(255,255,255,0.55)';
+  ctx.shadowBlur = size * 0.25;
+  ctx.fillStyle = '#ffffff';
+  ctx.fillText('2', 0, 0);
+  ctx.restore();
+}
+
 // Draws the shareable score card: game frame + score + best + link.
-export function buildShareCard({ snapshot, time, best, kills, isBest }) {
+export async function buildShareCard({ snapshot, score, best, kills, isBest }) {
+  await loadLogoFonts();
   const c = document.createElement('canvas');
   c.width = W;
   c.height = H;
@@ -26,18 +93,10 @@ export function buildShareCard({ snapshot, time, best, kills, isBest }) {
   }
   ctx.globalAlpha = 1;
 
-  // Title
+  // Logo
+  drawLogo(ctx, W / 2, 140, 92);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
-  const title = ctx.createLinearGradient(W / 2 - 180, 0, W / 2 + 180, 0);
-  title.addColorStop(0, POGS.pink.color);
-  title.addColorStop(0.5, POGS.orange.color);
-  title.addColorStop(1, POGS.green.color);
-  ctx.fillStyle = title;
-  ctx.font = `900 96px ${FONT}`;
-  if ('letterSpacing' in ctx) ctx.letterSpacing = '12px';
-  ctx.fillText('POG 2', W / 2 + 6, 130);
-  if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
 
   // Game frame
   const S = 820, X = (W - S) / 2, Y = 170;
@@ -56,7 +115,7 @@ export function buildShareCard({ snapshot, time, best, kills, isBest }) {
   // Score
   ctx.fillStyle = '#ffffff';
   ctx.font = `900 140px ${FONT}`;
-  const num = time.toFixed(1);
+  const num = String(score);
   const w = ctx.measureText(num).width;
   ctx.fillText(num, W / 2 - 22, 1135);
   ctx.textAlign = 'left';
@@ -71,7 +130,7 @@ export function buildShareCard({ snapshot, time, best, kills, isBest }) {
     ctx.fillText(`★ NEW BEST  ·  ${kills} POGs destroyed`, W / 2, 1195);
   } else {
     ctx.fillStyle = '#c3cae8';
-    ctx.fillText(`Best ${best.toFixed(1)}s  ·  ${kills} POGs destroyed`, W / 2, 1195);
+    ctx.fillText(`Best ${best}s  ·  ${kills} POGs destroyed`, W / 2, 1195);
   }
 
   // Link
@@ -98,8 +157,8 @@ export function cardToBlob(card) {
 // Opens the system share sheet with the card image. Falls back to a text/link share,
 // and finally to downloading the image + copying the link.
 // Returns 'shared' | 'cancelled' | 'fallback'.
-export async function shareScore(blob, time) {
-  const text = `I defended my planet for ${time.toFixed(1)}s in POG 2! Can you beat it?`;
+export async function shareScore(blob, score) {
+  const text = `I defended my planet for ${score}s in POG 2! Can you beat it?`;
   const file = new File([blob], 'pog2-score.png', { type: 'image/png' });
   try {
     if (navigator.canShare && navigator.canShare({ files: [file] })) {

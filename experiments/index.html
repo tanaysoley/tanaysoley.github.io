@@ -7,7 +7,7 @@
     <title>Experiments · Tanay Soley</title>
     <meta name="description" content="Games, music tools and other small experiments by Tanay Soley.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Inter:wght@400;600;800&family=Luckiest+Guy&display=swap">
     <style>
         :root {
             --bg: #f6f7fb;
@@ -137,14 +137,33 @@
         .featured .tag.new { background: #58f08a; border-color: #58f08a; color: #05200f; }
         .featured .body { flex: 1; display: flex; flex-direction: column; gap: 10px; }
 
-        .featured h2 {
-            width: fit-content;
-            font-size: 34px;
-            letter-spacing: 3px;
-            background: linear-gradient(90deg, #ff5fa8, #ffa040, #58f08a);
+        .featured h2 { font-size: 46px; font-weight: 400; margin: 2px 0; }
+
+        /* POG 2 logo (same look as the game's start screen) */
+        .logo { display: inline-flex; align-items: center; gap: 0.14em; line-height: 1; white-space: nowrap; }
+
+        .logo-pog {
+            font-family: "Luckiest Guy", "Arial Black", Impact, sans-serif;
+            letter-spacing: 0.04em;
+            padding-top: 0.1em;
+            background: linear-gradient(90deg, #ff5fa8 0%, #ff5fa8 18%, #ffa040 50%, #58f08a 82%, #58f08a 100%);
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
+            -webkit-text-stroke: 0.045em #1a1033;
+            paint-order: stroke fill;
+            filter: drop-shadow(0 0.07em 0 #1a1033);
+        }
+
+        .logo-2 {
+            display: inline-block;
+            font-family: "Bungee", "Arial Black", Impact, sans-serif;
+            font-size: 1.4em;
+            color: #fff;
+            -webkit-text-stroke: 0.035em #1a1033;
+            paint-order: stroke fill;
+            text-shadow: 0 0.06em 0 #1a1033, 0 0 0.3em rgba(255, 255, 255, 0.45);
+            transform: rotate(-8deg) translateY(-0.04em);
         }
 
         .play {
@@ -192,7 +211,7 @@
                 <div class="body">
                     <div class="tags"><span class="tag new">New</span><span class="tag">Game</span><span
                             class="tag">Desktop &amp; mobile</span></div>
-                    <h2>POG 2</h2>
+                    <h2><span class="logo" aria-label="POG 2"><span class="logo-pog">POG</span><span class="logo-2">2</span></span></h2>
                     <p>One planet, one rotating gun, one action: tap. Shoot down the pink, orange and green POGs before
                         they hit your planet, and grab power-ups along the way. How long can you survive?</p>
                     <span class="play">Play now →</span>

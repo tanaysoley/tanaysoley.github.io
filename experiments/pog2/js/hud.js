@@ -24,8 +24,8 @@ export class Hud {
 
   update(game, best) {
     const { planet, stats: st, powers } = game;
-    this.set('score', this.el.score, 'html', `${game.time.toFixed(1)}<span>s</span>`);
-    this.set('best', this.el.best, 'text', `${best.toFixed(1)}s`);
+    this.set('score', this.el.score, 'html', `${game.score}<span>s</span>`);
+    this.set('best', this.el.best, 'text', `${best}s`);
 
     const hp = Math.max(0, planet.health / planet.maxHealth);
     this.set('hpW', this.el.healthFill, 'width', `${hp * 100}%`);
@@ -54,7 +54,7 @@ export class Hud {
 
     const active = powers.active.map((p) => {
       const bits = [];
-      if (p.timeLeft != null) bits.push(`${Math.max(0, p.timeLeft).toFixed(1)}s`);
+      if (p.timeLeft != null) bits.push(`${Math.ceil(Math.max(0, p.timeLeft))}s`);
       if (p.usesLeft != null) bits.push(`${p.usesLeft} shots`);
       if (p.def.shield && sh && sh.power === p) bits.push(`${Math.ceil(sh.dp)} DP`);
       const pct = (powerRemaining(p, planet) * 100).toFixed(1);

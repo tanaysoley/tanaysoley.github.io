@@ -20,6 +20,14 @@ export function powerKeys(def) {
   return def.shield ? ['shield'] : Object.keys(def.mods || {});
 }
 
+// Amplifiers (powers with a `mul`/`add` mod) stack on top of normal powers instead of
+// queueing behind them; they only queue behind other amplifiers touching the same stats.
+export function isAmplifier(def) {
+  return Object.values(def.mods || {}).some((m) => 'mul' in m || 'add' in m);
+}
+
+const INTEGER_STATS = ['barrels', 'burst', 'spread'];
+
 // 0..1 for how much of a power is left (whichever limit is closest to running out).
 export function powerRemaining(p, planet) {
   let f = 1;
@@ -73,6 +81,9 @@ export class Game {
     this.phase = 'playing';
   }
 
+  // Score = whole seconds survived.
+  get score() { return Math.floor(this.time); }
+
   pause()  { if (this.phase === 'playing') this.phase = 'paused'; }
   resume() { if (this.phase === 'paused') this.phase = 'playing'; }
 
@@ -84,13 +95,17 @@ export class Game {
       ammo: GUN.ammo, burst: GUN.burst, burstInterval: GUN.burstInterval,
       spread: GUN.spread, spreadAngle: GUN.spreadAngle,
     };
-    for (const p of this.powers.active) {
-      for (const [k, m] of Object.entries(p.def.mods || {})) {
-        if ('set' in m) s[k] = m.set;
-        if ('mul' in m) s[k] *= m.mul;
-        if ('add' in m) s[k] += m.add;
-      }
-    }
+    // Fixed order so stacking is predictable: normal powers' `set`s, then amplifiers' `set`s
+    // (so e.g. a wider spread angle wins), then all `mul`s, then all `add`s.
+    const mods = (filter) => this.powers.active
+      .filter(filter)
+      .flatMap((p) => Object.entries(p.def.mods || {}));
+    const normal = mods((p) => !isAmplifier(p.def));
+    const amp = mods((p) => isAmplifier(p.def));
+    for (const [k, m] of [...normal, ...amp]) if ('set' in m) s[k] = m.set;
+    for (const [k, m] of [...normal, ...amp]) if ('mul' in m) s[k] *= m.mul;
+    for (const [k, m] of [...normal, ...amp]) if ('add' in m) s[k] += m.add;
+    for (const k of INTEGER_STATS) s[k] = Math.max(1, Math.round(s[k]));
     return s;
   }
 
@@ -226,11 +241,15 @@ export class Game {
         this.deactivatePower(p);
       }
     }
-    // Activate queued powers in order, unless an active/earlier-queued power touches the same stats.
-    const blocked = new Set(active.flatMap((p) => powerKeys(p.def)));
+    // Activate queued powers in order, unless an active/earlier-queued power of the same class
+    // (normal vs amplifier) touches the same stats.
+    const blockedSets = { normal: new Set(), amp: new Set() };
+    const classOf = (p) => (isAmplifier(p.def) ? 'amp' : 'normal');
+    for (const p of active) powerKeys(p.def).forEach((k) => blockedSets[classOf(p)].add(k));
     for (let i = 0; i < queue.length; ) {
       const p = queue[i];
       const keys = powerKeys(p.def);
+      const blocked = blockedSets[classOf(p)];
       if (keys.some((k) => blocked.has(k))) {
         keys.forEach((k) => blocked.add(k));
         i++;
@@ -349,7 +368,7 @@ export class Game {
 
     if (this.phase === 'dying' && (this.dyingTimer -= dt) <= 0) {
       this.phase = 'over';
-      this.events.onGameOver?.({ time: this.time, kills: this.kills });
+      this.events.onGameOver?.({ score: this.score, kills: this.kills });
     }
 
     // Cosmetics
@@ -523,14 +542,14 @@ export class Game {
   }
 
   drawScore(ctx) {
-    const beating = this.best > 0 && this.time > this.best;
+    const beating = this.best > 0 && this.score > this.best;
     ctx.save();
     ctx.textAlign = 'center';
     ctx.textBaseline = 'alphabetic';
     ctx.shadowColor = 'rgba(0,0,0,0.6)';
     ctx.shadowBlur = 12;
     ctx.font = '900 84px system-ui, -apple-system, "Segoe UI", sans-serif';
-    const num = this.time.toFixed(1);
+    const num = String(this.score);
     const w = ctx.measureText(num).width;
     ctx.fillStyle = beating ? '#ffe066' : 'rgba(255,255,255,0.92)';
     ctx.fillText(num, CENTER - 14, 110);
@@ -541,7 +560,7 @@ export class Game {
     ctx.textAlign = 'center';
     ctx.font = '700 22px system-ui, -apple-system, "Segoe UI", sans-serif';
     ctx.fillStyle = beating ? '#ffe066' : 'rgba(200,210,255,0.6)';
-    if (this.best > 0) ctx.fillText(beating ? 'NEW BEST!' : `BEST ${this.best.toFixed(1)}s`, CENTER, 145);
+    if (this.best > 0) ctx.fillText(beating ? 'NEW BEST!' : `BEST ${this.best}s`, CENTER, 145);
     ctx.restore();
   }
 
@@ -734,7 +753,11 @@ export class Game {
     hex(c.r); ctx.fill(); ctx.stroke();
     ctx.restore();
     ctx.fillStyle = c.def.color;
+    // Shrink longer glyphs (e.g. "SP 3x") so they stay inside the hexagon.
     ctx.font = 'bold 17px system-ui, sans-serif';
+    const gw = ctx.measureText(c.def.glyph).width;
+    const maxW = c.r * 1.55;
+    if (gw > maxW) ctx.font = `bold ${Math.floor((17 * maxW) / gw)}px system-ui, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(c.def.glyph, 0, 1);

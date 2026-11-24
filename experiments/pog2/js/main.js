@@ -14,23 +14,24 @@ const ovAction = document.getElementById('ovAction');
 const pauseBtn = document.getElementById('pauseBtn');
 const muteBtn = document.getElementById('muteBtn');
 
-let best = parseFloat(localStorage.getItem(BEST_KEY)) || 0;
+// Scores are whole seconds (older saves may hold decimals, so floor them).
+let best = Math.floor(parseFloat(localStorage.getItem(BEST_KEY)) || 0);
 let overlayMode = 'menu';
 let overlayLockedUntil = 0;
 
-let share = null; // { blob, url, time } for the last finished game
+let share = null; // { blob, url, score } for the last finished game
 
 const hud = new Hud();
 const game = new Game(canvas, {
-  onGameOver({ time, kills }) {
-    const isBest = time > best;
+  onGameOver({ score, kills }) {
+    const isBest = score > best;
     if (isBest) {
-      best = time;
+      best = score;
       localStorage.setItem(BEST_KEY, String(best));
     }
     game.best = best;
-    showOverlay('over', { time, kills, isBest });
-    prepareShare({ snapshot: game.snapshot, time, best, kills, isBest });
+    showOverlay('over', { score, kills, isBest });
+    prepareShare({ snapshot: game.snapshot, score, best, kills, isBest });
   },
 });
 game.best = best;
@@ -38,9 +39,9 @@ game.best = best;
 async function prepareShare(data) {
   if (share) URL.revokeObjectURL(share.url);
   share = null;
-  const blob = await cardToBlob(buildShareCard(data));
+  const blob = await cardToBlob(await buildShareCard(data));
   if (!blob) return;
-  share = { blob, url: URL.createObjectURL(blob), time: data.time };
+  share = { blob, url: URL.createObjectURL(blob), score: data.score };
   const img = document.getElementById('shareImg');
   const btn = document.getElementById('shareBtn');
   if (img) { img.src = share.url; img.classList.add('ready'); }
@@ -50,7 +51,7 @@ async function prepareShare(data) {
 async function onShare() {
   if (!share) return;
   const status = document.getElementById('shareStatus');
-  const result = await shareScore(share.blob, share.time);
+  const result = await shareScore(share.blob, share.score);
   if (status && result === 'fallback') {
     status.textContent = 'Sharing isn’t supported here: image downloaded and link copied.';
   }
@@ -71,6 +72,8 @@ resize();
 
 // ------------------------------------------------------------ overlay
 
+const LOGO_HTML = '<span class="logo" aria-label="POG 2"><span class="logo-pog">POG</span><span class="logo-2">2</span></span>';
+
 const pogLegend = Object.values(POGS)
   .map((p) => `<span class="legend"><i style="background:${p.color}"></i>${p.name}</span>`).join('');
 const powerLegend = Object.values(POWERS)
@@ -80,13 +83,14 @@ function showOverlay(mode, data = {}) {
   overlayMode = mode;
   overlay.classList.add('show');
   overlay.classList.toggle('over', mode === 'over');
+  ovTitle.classList.toggle('logo-title', mode === 'menu');
   if (mode === 'menu') {
-    ovTitle.textContent = 'POG 2';
+    ovTitle.innerHTML = LOGO_HTML;
     ovBody.innerHTML = `
       <p>Your gun circles the planet on its own. <b>Tap</b> anywhere (or press <b>Space</b>) to fire.</p>
       <p>Defend the planet from falling POGs: ${pogLegend}</p>
       <p>Shoot the glowing crystals to collect powers. They queue up and switch on in turn.</p>
-      <p class="muted">Score = seconds survived. Best: ${best.toFixed(1)}s</p>`;
+      <p class="muted">Score = seconds survived. Best: ${best}s</p>`;
     ovAction.textContent = 'Tap to start';
   } else if (mode === 'paused') {
     ovTitle.textContent = 'Paused';
@@ -95,10 +99,10 @@ function showOverlay(mode, data = {}) {
   } else if (mode === 'over') {
     ovTitle.textContent = 'Planet lost';
     ovBody.innerHTML = `
-      <div class="final">${data.time.toFixed(1)}<span>s</span></div>
-      <p>${data.isBest ? '<b class="new-best">★ New best!</b>' : `Best: ${best.toFixed(1)}s`}
+      <div class="final">${data.score}<span>s</span></div>
+      <p>${data.isBest ? '<b class="new-best">★ New best!</b>' : `Best: ${best}s`}
         <span class="muted"> · ${data.kills} POGs destroyed</span></p>
-      <img id="shareImg" class="share-img" alt="Score card: survived ${data.time.toFixed(1)} seconds in POG 2">
+      <img id="shareImg" class="share-img" alt="Score card: survived ${data.score} seconds in POG 2">
       <div class="final-actions">
         <button id="shareBtn" class="btn primary" disabled>Share</button>
         <button id="againBtn" class="btn">Play again</button>

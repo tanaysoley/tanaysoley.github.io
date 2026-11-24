@@ -70,8 +70,8 @@ export const POGS = {
   green: {
     name: "Green",
     hp: 1,
-    radius: 15,
-    speed: [120, 160],
+    radius: 20,
+    speed: [60, 80],
     damage: 7,
     color: "#58f08a",
     dark: "#1d6b3c",
@@ -79,8 +79,8 @@ export const POGS = {
   orange: {
     name: "Orange",
     hp: 2,
-    radius: 23,
-    speed: [85, 115],
+    radius: 35,
+    speed: [50, 70],
     damage: 12,
     color: "#ffa040",
     dark: "#8f4508",
@@ -88,8 +88,8 @@ export const POGS = {
   pink: {
     name: "Pink",
     hp: 3,
-    radius: 33,
-    speed: [55, 80],
+    radius: 40,
+    speed: [35, 55],
     damage: 20,
     color: "#ff5fa8",
     dark: "#86204f",
@@ -101,12 +101,12 @@ export const POGS = {
 export const SPAWN = {
   radius: 745, // pogs appear on this circle (just outside the square's corners)
   despawnRadius: 800, // and are removed past this once moving away
-  missSpread: 260, // max sideways offset of a pog's aim point (bigger = more misses)
-  interval: (t) => Math.max(0.45, 2.0 / (1 + t / 70)),
+  missSpread: 62, // max sideways offset of a pog's aim point (bigger = more misses)
+  interval: (t) => Math.max(2, 2.0 / (1 + t / 70)),
   weights: (t) => [
     ["green", 1],
-    ["orange", 0.8 * clamp01((t - 15) / 35)],
-    ["pink", 0.5 * clamp01((t - 40) / 50)],
+    ["orange", 0.2 * clamp01((t - 15) / 35)],
+    ["pink", 0.05 * clamp01((t - 40) / 50)],
   ],
   speedMul: (t) => 1 + Math.min(0.6, t / 300),
   hpBonus: (t) => Math.floor(t / 120), // extra hp for pogs with base hp > 1
@@ -118,6 +118,8 @@ export const SPAWN = {
 // Powers: shoot a crystal to collect one. Non-instant powers are queued.
 // A queued power activates as soon as no active (or earlier queued) power touches
 // the same stat keys, so e.g. a shield and a gun power run simultaneously.
+// Powers using `mul`/`add` are amplifiers: they stack on top of normal (`set`) powers and only
+// queue behind other amplifiers on the same stats (e.g. Spread Shot + Spread Shot 2x = 3 × 3 bullets).
 // Limits: `duration` (seconds) and/or `shots` (trigger pulls) — whichever runs out first.
 export const POWERS = {
   rapid: {
@@ -126,7 +128,7 @@ export const POWERS = {
     color: "#ffe066",
     weight: 3,
     mods: { reloadTime: { mul: 0.4 } },
-    duration: 8,
+    duration: 20,
   },
   twin: {
     name: "Twin Barrels",
@@ -134,7 +136,7 @@ export const POWERS = {
     color: "#8ecbff",
     weight: 3,
     mods: { barrels: { set: 2 } },
-    duration: 12,
+    duration: 30,
   },
   quad: {
     name: "Quad Barrels",
@@ -142,7 +144,7 @@ export const POWERS = {
     color: "#5aa9ff",
     weight: 1.5,
     mods: { barrels: { set: 4 } },
-    shots: 20,
+    shots: 30,
   },
   spread: {
     name: "Spread Shot",
@@ -150,8 +152,17 @@ export const POWERS = {
     color: "#c18bff",
     weight: 3,
     mods: { spread: { set: 3 }, spreadAngle: { set: 0.4 } },
-    duration: 15,
-    shots: 30,
+    duration: 30,
+    shots: 60,
+  },
+  spread3x: {
+    name: "Spread Shot 2x",
+    glyph: "SP 3x",
+    color: "#c18bff",
+    weight: 3,
+    mods: { spread: { mul: 3 }, spreadAngle: { set: 0.6 } },
+    duration: 30,
+    shots: 60,
   },
   burst: {
     name: "Burst Fire",
@@ -159,6 +170,14 @@ export const POWERS = {
     color: "#ff8bd1",
     weight: 2.5,
     mods: { burst: { set: 3 } },
+    shots: 20,
+  },
+  burst2x: {
+    name: "Burst Fire 2x",
+    glyph: "B 2x",
+    color: "#ff8bd1",
+    weight: 2.5,
+    mods: { burst: { mul: 2 } },
     shots: 20,
   },
   heavy: {
