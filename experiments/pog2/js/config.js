@@ -105,8 +105,8 @@ export const SPAWN = {
   interval: (t) => Math.max(2, 2.0 / (1 + t / 70)),
   weights: (t) => [
     ["green", 1],
-    ["orange", 0.2 * clamp01((t - 15) / 35)],
-    ["pink", 0.05 * clamp01((t - 40) / 50)],
+    ["orange", 0.5 * clamp01((t - 15) / 35)],
+    ["pink", 0.1 * clamp01((t - 40) / 50)],
   ],
   speedMul: (t) => 1 + Math.min(0.6, t / 300),
   hpBonus: (t) => Math.floor(t / 120), // extra hp for pogs with base hp > 1
