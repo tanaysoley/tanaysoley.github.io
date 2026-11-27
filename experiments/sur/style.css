@@ -598,3 +598,54 @@ select {
   .sam-wrap { min-height: 440px; }
 }
 
+
+
+/* ---------- Surang ---------- */
+
+.sg-wrap {
+  position: relative;
+  flex: 1;
+  min-height: 480px;
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 14px;
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  background: #0a0f24;
+  touch-action: manipulation;
+}
+#sgCanvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.sg-pause {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(10, 15, 36, 0.6);
+  border-color: transparent;
+  color: #e8ebff;
+  font-size: 11px;
+}
+.sg-scale { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.sg-scale-name { font-family: var(--dev); font-size: 18px; }
+.sg-stages { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 6px; }
+.sg-stage {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  text-align: left;
+  border: 1px solid var(--line);
+  background: var(--card);
+  border-radius: 12px;
+  padding: 8px 12px;
+}
+.sg-stage:hover { border-color: var(--accent); }
+.sg-num { font-size: 12px; font-weight: 700; color: var(--muted); min-width: 16px; }
+.sg-stage .swar-line { font-size: 18px; }
+.sg-row { grid-template-columns: 1fr auto; }
+
+/* Lane labels play the swars here, so the dock keeps only the tanpura. */
+body[data-view="surang"] #noteBtns,
+body[data-view="surang"] .oct-switch { display: none; }
+
+@media (max-width: 560px) {
+  .sg-wrap { min-height: 360px; margin-bottom: 8px; }
+}

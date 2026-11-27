@@ -5,6 +5,7 @@ import {
 import { PitchDetector } from './pitch.js';
 import { Tanpura, NotePlayer } from './audio.js';
 import { SurSamraat } from './samraat.js';
+import { Surang } from './surang.js';
 
 // ---------------------------------------------------------------------------
 // Settings
@@ -683,6 +684,7 @@ function applySettings() {
   renderNoteButtons();
   renderPracticeSetup();
   if (game && game.state === 'menu') game.renderMenu();
+  if (surang && surang.state === 'menu') surang.renderMenu();
   if (run && !$('pRun').hidden) {
     renderStrip();
     renderTarget();
@@ -710,11 +712,14 @@ $('scriptBtn').addEventListener('click', () => {
 function showView(view) {
   S.view = view;
   saveSettings();
+  document.body.dataset.view = view;
   document.querySelectorAll('.tabs [data-view]').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.view === view)));
   $('view-tuner').hidden = view !== 'tuner';
   $('view-practice').hidden = view !== 'practice';
   $('view-game').hidden = view !== 'game';
+  $('view-surang').hidden = view !== 'surang';
   if (view !== 'game' && game) game.pause();
+  if (view !== 'surang' && surang) surang.pause();
 }
 document.querySelectorAll('.tabs [data-view]').forEach((b) => b.addEventListener('click', () => showView(b.dataset.view)));
 
@@ -729,6 +734,7 @@ function frame(now) {
   updatePitch(now);
   if (S.view === 'tuner') renderTuner(now);
   else if (S.view === 'game') game.tick(now, dt, pitch);
+  else if (S.view === 'surang') surang.tick(now, dt, pitch);
   else practiceTick(now, dt);
   requestAnimationFrame(frame);
 }
@@ -777,6 +783,27 @@ const game = new SurSamraat({
   stopNotes: () => notePlayer && notePlayer.stop(),
 });
 window.sur.game = game;
+
+// ---------------------------------------------------------------------------
+// Game: Surang
+// ---------------------------------------------------------------------------
+
+const surang = new Surang({
+  el: {
+    canvas: $('sgCanvas'), menu: $('sgMenu'), paused: $('sgPaused'), result: $('sgResult'),
+    pause: $('sgPause'), resume: $('sgResume'), quit: $('sgQuit'), retry: $('sgRetry'), back: $('sgBack'),
+  },
+  script: () => S.script,
+  scale: () => scale,
+  font: FONT,
+  playNote: (n, dur) => {
+    ensureAudio();
+    if (ctx.state === 'suspended') ctx.resume();
+    notePlayer.play(noteFreq(n), dur);
+  },
+  openSettings,
+});
+window.sur.surang = surang;
 
 populateSettings();
 applySettings();

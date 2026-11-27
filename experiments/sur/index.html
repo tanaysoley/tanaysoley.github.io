@@ -19,6 +19,7 @@
         <button role="tab" id="tab-tuner" aria-selected="true" data-view="tuner">Tuner</button>
         <button role="tab" id="tab-practice" aria-selected="false" data-view="practice">Practice</button>
         <button role="tab" id="tab-game" aria-selected="false" data-view="game">Sur Samraat</button>
+        <button role="tab" id="tab-surang" aria-selected="false" data-view="surang">Surang</button>
         <button role="tab" class="soon" disabled title="Sing along: coming later">Sing along <small>soon</small></button>
       </nav>
       <div class="top-actions">
@@ -145,6 +146,33 @@
               <div class="run-actions">
                 <button id="samRetry" class="primary">Sing again</button>
                 <button id="samBack" class="ghost">Songs</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Game: Surang (tunnels) -->
+      <section id="view-surang" class="view" role="tabpanel" aria-labelledby="tab-surang" hidden>
+        <div class="sg-wrap">
+          <canvas id="sgCanvas" aria-label="Surang: sing to roll the ball through the tunnels"></canvas>
+          <button id="sgPause" class="icon-btn small sg-pause" aria-label="Pause" hidden>❚❚</button>
+          <div id="sgMenu" class="sam-screen"></div>
+          <div id="sgPaused" class="sam-screen center" hidden>
+            <div class="sam-card">
+              <h2>Paused</h2>
+              <div class="run-actions">
+                <button id="sgResume" class="primary">Resume</button>
+                <button id="sgQuit" class="ghost">Stages</button>
+              </div>
+            </div>
+          </div>
+          <div id="sgResult" class="sam-screen center" hidden>
+            <div class="sam-card">
+              <div class="res-body"></div>
+              <div class="run-actions">
+                <button id="sgRetry" class="primary">Play again</button>
+                <button id="sgBack" class="ghost">Stages</button>
               </div>
             </div>
           </div>
